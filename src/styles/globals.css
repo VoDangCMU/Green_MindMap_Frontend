@@ -1,12 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Green Mind greenery color palette - HSL format for better compatibility */
+  --background: 120 5% 98%;
+  --foreground: 120 10% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 120 10% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 120 10% 15%;
+  --primary: 130 40% 45%;
+  --primary-foreground: 120 5% 98%;
+  --secondary: 120 10% 95%;
+  --secondary-foreground: 120 15% 25%;
+  --muted: 120 10% 95%;
+  --muted-foreground: 120 15% 55%;
+  --accent: 125 15% 92%;
+  --accent-foreground: 120 15% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 120 5% 98%;
+  --border: 120 10% 88%;
+  --input: 120 10% 92%;
+  --ring: 130 40% 45%;
+  --radius: 0.75rem;
+
+  /* Sidebar colors */
+  --sidebar: 120 10% 96%;
+  --sidebar-foreground: 120 20% 20%;
+  --sidebar-primary: 130 40% 45%;
+  --sidebar-primary-foreground: 120 5% 98%;
+  --sidebar-accent: 125 15% 92%;
+  --sidebar-accent-foreground: 120 15% 25%;
+  --sidebar-border: 120 10% 88%;
+  --sidebar-ring: 130 40% 45%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.dark {
+  /* Dark theme with greenery accents */
+  --background: 120 10% 8%;
+  --foreground: 120 5% 95%;
+  --card: 120 10% 12%;
+  --card-foreground: 120 5% 95%;
+  --popover: 120 10% 12%;
+  --popover-foreground: 120 5% 95%;
+  --primary: 130 50% 55%;
+  --primary-foreground: 120 10% 8%;
+  --secondary: 120 10% 18%;
+  --secondary-foreground: 120 5% 95%;
+  --muted: 120 10% 18%;
+  --muted-foreground: 120 10% 65%;
+  --accent: 125 15% 22%;
+  --accent-foreground: 120 5% 95%;
+  --destructive: 0 60% 45%;
+  --destructive-foreground: 120 5% 95%;
+  --border: 120 10% 22%;
+  --input: 120 10% 18%;
+  --ring: 130 50% 55%;
+
+  /* Dark sidebar colors */
+  --sidebar: 120 10% 10%;
+  --sidebar-foreground: 120 5% 90%;
+  --sidebar-primary: 130 50% 55%;
+  --sidebar-primary-foreground: 120 10% 8%;
+  --sidebar-accent: 120 10% 18%;
+  --sidebar-accent-foreground: 120 5% 95%;
+  --sidebar-border: 120 10% 22%;
+  --sidebar-ring: 130 50% 55%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
@@ -17,8 +85,6 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -33,10 +99,4 @@ body {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }
