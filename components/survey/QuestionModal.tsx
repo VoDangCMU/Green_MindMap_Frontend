@@ -12,24 +12,25 @@ import {
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { useScenarioStore } from "@/store/useScenarioStore"
 import { useToast } from "@/hooks/use-toast"
 import { CheckCircle2, Loader2 } from "lucide-react"
 import { getAllQuestions } from "@/lib/auth"
+import { attachQuestions } from "@/lib/survey"
 
 interface QuestionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   scenarioId: string
-  selectedQuestions: string[]
+  selectedQuestions: Array<{ id: string; question: string }>
+  onSuccess?: () => void
 }
 
-export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestions }: QuestionModalProps) {
-  const { selectQuestions } = useScenarioStore()
+export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestions, onSuccess }: QuestionModalProps) {
   const { toast } = useToast()
-  const [selected, setSelected] = useState<string[]>(selectedQuestions)
+  const [selected, setSelected] = useState<string[]>(selectedQuestions.map(q => q.id))
   const [questions, setQuestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Load questions from API when modal opens
   useEffect(() => {
@@ -50,7 +51,7 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
 
       console.log('✅ Questions loaded for modal:', questionsData)
     } catch (error) {
-      console.error('❌ Error loading questions for modal:', error)
+      console.error('Error loading questions for modal:', error)
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách câu hỏi",
@@ -65,13 +66,25 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
     setSelected((prev) => (prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]))
   }
 
-  const handleConfirm = () => {
-    selectQuestions(scenarioId, selected)
-    toast({
-      title: "Questions Attached",
-      description: `${selected.length} question(s) have been attached to this scenario.`,
-    })
-    onOpenChange(false)
+  const handleConfirm = async () => {
+    setIsSubmitting(true)
+    try {
+      await attachQuestions(scenarioId, selected)
+      toast({
+        title: "Questions Attached",
+        description: `${selected.length} question(s) have been attached to this scenario.`,
+      })
+      onOpenChange(false)
+      if (onSuccess) onSuccess()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to attach questions",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -118,11 +131,11 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={selected.length === 0 || isLoading}>
-            Confirm ({selected.length} selected)
+          <Button onClick={handleConfirm} disabled={selected.length === 0 || isLoading || isSubmitting}>
+            {isSubmitting ? "Attaching..." : `Confirm (${selected.length} selected)`}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -244,7 +244,7 @@ export const getAllModels = async (filters?: any) => {
       method: 'GET',
       url: '/models/getAll',
       headers: {
-          Authorization: 'Bearer ' + token,
+        Authorization: 'Bearer ' + token,
       },
     };
 
@@ -436,5 +436,4 @@ export const combineQuestion = async (questionData: any) => {
   return aiApiPost('/combine_question', questionData);
 };
 
-// Export the configured axios instance for other components to use
 export { apiClient, aiApiClient };
