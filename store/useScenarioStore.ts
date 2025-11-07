@@ -63,109 +63,11 @@ interface ScenarioStore {
   importTree: (jsonString: string) => boolean
 }
 
-// Mock initial data
-const initialUsers: User[] = [
-  // Đà Nẵng - Young adults (18-25)
-  { id: "u1", name: "Nguyễn Văn Phong", age: 22, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-  { id: "u2", name: "Trần Thị Linh", age: 24, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-  { id: "u3", name: "Lê Minh Tú", age: 19, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-  { id: "u6", name: "Phạm Thị Hương", age: 21, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-  { id: "u11", name: "Võ Thị Mai", age: 23, location: "Đà Nẵng", status: "completed", assignedScenarios: [] },
-  { id: "u12", name: "Đặng Văn Hải", age: 20, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-
-  // Đà Nẵng - Adults (26-40)
-  { id: "u13", name: "Bùi Thị Lan", age: 28, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-  { id: "u14", name: "Hoàng Văn Sơn", age: 35, location: "Đà Nẵng", status: "completed", assignedScenarios: [] },
-  { id: "u15", name: "Ngô Thị Thảo", age: 32, location: "Đà Nẵng", status: "pending", assignedScenarios: [] },
-
-  // Hà Nội - Young adults (18-25)
-  { id: "u16", name: "Trịnh Văn Bình", age: 22, location: "Hà Nội", status: "pending", assignedScenarios: [] },
-  { id: "u17", name: "Lý Thị Nga", age: 24, location: "Hà Nội", status: "pending", assignedScenarios: [] },
-  { id: "u18", name: "Phan Văn Đức", age: 21, location: "Hà Nội", status: "completed", assignedScenarios: [] },
-
-  // Hà Nội - Adults (26-40)
-  { id: "u4", name: "Vũ Thị An", age: 28, location: "Hà Nội", status: "pending", assignedScenarios: [] },
-  { id: "u5", name: "Đỗ Văn Minh", age: 33, location: "Hà Nội", status: "pending", assignedScenarios: [] },
-  { id: "u7", name: "Nguyễn Văn Đức", age: 30, location: "Hà Nội", status: "pending", assignedScenarios: [] },
-  { id: "u19", name: "Trương Thị Hoa", age: 36, location: "Hà Nội", status: "completed", assignedScenarios: [] },
-  { id: "u20", name: "Lê Văn Tùng", age: 29, location: "Hà Nội", status: "pending", assignedScenarios: [] },
-
-  // TP.HCM - Young adults (18-25)
-  { id: "u21", name: "Cao Thị Hằng", age: 23, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-  { id: "u22", name: "Đinh Văn Khoa", age: 25, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-  { id: "u23", name: "Mai Thị Trang", age: 20, location: "TP.HCM", status: "completed", assignedScenarios: [] },
-  { id: "u24", name: "Hồ Văn Long", age: 22, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-
-  // TP.HCM - Adults (26-40)
-  { id: "u25", name: "Dương Thị Phương", age: 31, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-  { id: "u26", name: "Tô Văn Hùng", age: 38, location: "TP.HCM", status: "completed", assignedScenarios: [] },
-  { id: "u27", name: "Lâm Thị Xuân", age: 27, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-  { id: "u28", name: "Chu Văn Thắng", age: 34, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-
-  // TP.HCM - Older adults (41-60)
-  { id: "u29", name: "Huỳnh Thị Kim", age: 45, location: "TP.HCM", status: "pending", assignedScenarios: [] },
-  { id: "u30", name: "Trần Văn Toàn", age: 52, location: "TP.HCM", status: "completed", assignedScenarios: [] },
-]
-
-// Mock initial scenarios
-const initialScenarios: Scenario[] = [
-  {
-    id: "scenario-sample-1",
-    name: "18–25 | Đà Nẵng (60%)",
-    description: "Khảo sát về thói quen mua sắm thân thiện môi trường của giới trẻ tại Đà Nẵng",
-    trait: "Openness",
-    behavior: "Eco-conscious shopping",
-    demographic: { ageRange: [18, 25], location: "Đà Nẵng" },
-    percentage: 0.6,
-    questions: [],
-    usersAssigned: [],
-    status: "draft",
-    keywords: ["vegan", "eco bag", "recycle", "sustainable"],
-  },
-  {
-    id: "scenario-sample-2",
-    name: "26–40 | Hà Nội (80%)",
-    description: "Nghiên cứu lối sống tập trung vào sức khỏe của người trưởng thành tại Hà Nội",
-    trait: "Conscientiousness",
-    behavior: "Health-focused lifestyle",
-    demographic: { ageRange: [26, 40], location: "Hà Nội" },
-    percentage: 0.8,
-    questions: [],
-    usersAssigned: [],
-    status: "draft",
-    keywords: ["organic", "fitness", "wellness", "nutrition"],
-  },
-  {
-    id: "scenario-sample-3",
-    name: "20–35 | TP.HCM (50%)",
-    description: "Phân tích hành vi tương tác mạng xã hội của nhóm tuổi 20-35 tại TP.HCM",
-    trait: "Extraversion",
-    behavior: "Social media engagement",
-    demographic: { ageRange: [20, 35], location: "TP.HCM" },
-    percentage: 0.5,
-    questions: [],
-    usersAssigned: [],
-    status: "draft",
-    keywords: ["social", "community", "sharing", "trending"],
-  },
-]
-
-const initialQuestions: Question[] = [
-  { id: "q1", text: "How often do you recycle?" },
-  { id: "q2", text: "Do you prefer eco-friendly brands?" },
-  { id: "q3", text: "Would you pay more for sustainable products?" },
-  { id: "q4", text: "Do you use reusable bags?" },
-  { id: "q5", text: "How often do you commute by bike?" },
-  { id: "q6", text: "Do you buy organic food?" },
-  { id: "q7", text: "How important is environmental impact in your purchasing decisions?" },
-  { id: "q8", text: "Do you participate in community environmental activities?" },
-]
-
 export const useScenarioStore = create<ScenarioStore>((set, get) => ({
   tree: [],
-  scenarios: initialScenarios,
-  users: initialUsers,
-  questions: initialQuestions,
+  scenarios: [],
+  users: [],
+  questions: [],
 
   setTree: (tree) => set({ tree }),
 
@@ -280,10 +182,10 @@ export const useScenarioStore = create<ScenarioStore>((set, get) => ({
       const updatedScenarios = state.scenarios.map((s) =>
         s.id === scenarioId
           ? {
-              ...s,
-              usersAssigned: assigned.map((u) => u.id),
-              status: "sent" as const,
-            }
+            ...s,
+            usersAssigned: assigned.map((u) => u.id),
+            status: "sent" as const,
+          }
           : s,
       )
 

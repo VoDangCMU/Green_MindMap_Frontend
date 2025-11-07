@@ -1,26 +1,73 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useScenarioStore } from "@/store/useScenarioStore"
 import { useToast } from "@/hooks/use-toast"
-import { Send, Trash2, Eye, Download, ListChecks } from "lucide-react"
+import { Send, Trash2, Eye, Download, ListChecks, RefreshCw } from "lucide-react"
 import { QuestionModal } from "./QuestionModal"
+import { getAllSurveyScenarios, simulateSurveyScenario, deleteSurveyScenario } from "@/lib/survey"
 
 interface SurveyScenarioTableProps {
-  onViewResult: (scenarioId: string) => void
+  onViewResult: (scenarioId: string, scenario: ScenarioFromAPI) => void
+  onScenarioDeleted?: (deletedScenarioId: string) => void
 }
 
-export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) {
-  const { scenarios, simulateDistribution, deleteScenario, exportScenariosAsJSON } = useScenarioStore()
+interface ScenarioFromAPI {
+  id: string
+  minAge: number
+  maxAge: number
+  percentage: number
+  status: "draft" | "sent"
+  location: {
+    id: string
+    latitude: number
+    longitude: number
+    address: string
+    createdAt: string
+    updatedAt: string
+  } | null
+  questions: Array<{
+    id: string
+    question: string
+  }>
+  gender?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyScenarioTableProps) {
   const { toast } = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("")
+  const [scenarios, setScenarios] = useState<ScenarioFromAPI[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const handleSimulate = (scenarioId: string) => {
+  useEffect(() => {
+    fetchScenarios()
+  }, [])
+
+  const fetchScenarios = async () => {
+    setLoading(true)
+    try {
+      const response = await getAllSurveyScenarios()
+      const scenariosData = response?.data || []
+      setScenarios(scenariosData)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load scenarios",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSimulate = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId)
 
     if (!scenario?.questions || scenario.questions.length === 0) {
@@ -32,33 +79,92 @@ export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) 
       return
     }
 
-    simulateDistribution(scenarioId)
-    onViewResult(scenarioId)
-    toast({
-      title: "Survey Distributed",
-      description: "Survey has been sent to assigned users. Check results below.",
-    })
+    try {
+      const response = await simulateSurveyScenario(scenarioId)
+      console.log("Simulate response:", response)
+
+      await fetchScenarios()
+
+      const updatedScenarios = await getAllSurveyScenarios()
+      const updatedScenario = updatedScenarios?.data?.find((s: ScenarioFromAPI) => s.id === scenarioId)
+
+      if (updatedScenario) {
+        onViewResult(scenarioId, updatedScenario)
+      }
+
+      toast({
+        title: "Survey Distributed",
+        description: "Survey has been sent to assigned users. Check results below.",
+      })
+    } catch (error) {
+      console.error("Simulate error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to simulate scenario",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleDelete = (scenarioId: string) => {
-    deleteScenario(scenarioId)
-    toast({
-      title: "Scenario Deleted",
-      description: "The scenario has been removed.",
-    })
+  const handleDelete = async (scenarioId: string) => {
+    try {
+      await deleteSurveyScenario(scenarioId)
+      await fetchScenarios()
+      if (onScenarioDeleted) {
+        onScenarioDeleted(scenarioId)
+      }
+
+      toast({
+        title: "Scenario Deleted",
+        description: "The scenario has been removed.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete scenario",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleViewResult = (scenarioId: string) => {
-    onViewResult(scenarioId)
-    toast({
-      title: "Viewing Results",
-      description: "Check the simulation results below.",
-    })
+    const scenario = scenarios.find((s) => s.id === scenarioId)
+    if (!scenario) {
+      toast({
+        title: "Error",
+        description: "Scenario not found",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (scenario.status !== "sent") {
+      toast({
+        title: "Not Simulated",
+        description: "Please simulate this scenario first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    console.log("Viewing result for scenario:", scenario)
+    onViewResult(scenarioId, scenario)
   }
 
   const handleSelectQuestions = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId)
     setModalOpen(true)
+  }
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(scenarios, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `survey-scenarios-${new Date().toISOString()}.json`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   const currentScenario = scenarios.find((s) => s.id === selectedScenarioId)
@@ -69,12 +175,18 @@ export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) 
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl">Demographic Scenarios</CardTitle>
-            {scenarios.length > 0 && (
-              <Button onClick={() => exportScenariosAsJSON()} variant="outline" size="sm" className="shadow-sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export JSON
+            <div className="flex gap-2">
+              <Button onClick={fetchScenarios} variant="outline" size="sm" disabled={loading}>
+                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
               </Button>
-            )}
+              {scenarios.length > 0 && (
+                <Button onClick={handleExport} variant="outline" size="sm" className="shadow-sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export JSON
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -91,6 +203,7 @@ export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) 
                   <TableRow className="bg-gray-50/50">
                     <TableHead className="font-semibold">#</TableHead>
                     <TableHead className="font-semibold">Age Range</TableHead>
+                    <TableHead className="font-semibold">Gender</TableHead>
                     <TableHead className="font-semibold">Location</TableHead>
                     <TableHead className="font-semibold">%</TableHead>
                     <TableHead className="font-semibold">Questions</TableHead>
@@ -103,11 +216,14 @@ export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) 
                     <TableRow key={scenario.id} className="transition-colors hover:bg-gray-50/50">
                       <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                       <TableCell className="font-semibold">
-                        {scenario.demographic.ageRange[0]}–{scenario.demographic.ageRange[1]}
+                        {scenario.minAge}–{scenario.maxAge}
                       </TableCell>
-                      <TableCell className="font-medium">{scenario.demographic.location}</TableCell>
+                      <TableCell className="font-medium">  {scenario.gender
+                        ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
+                        : "All"}</TableCell>
+                      <TableCell className="font-medium">{scenario.location?.address || "N/A"}</TableCell>
                       <TableCell className="font-semibold text-blue-600">
-                        {(scenario.percentage * 100).toFixed(0)}%
+                        {scenario.percentage}%
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-medium">
@@ -135,10 +251,23 @@ export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) 
                                 <ListChecks className="mr-2 h-4 w-4" />
                                 Select Qs
                               </Button>
-                              <Button size="sm" onClick={() => handleSimulate(scenario.id)} className="shadow-sm">
-                                <Send className="mr-2 h-4 w-4" />
-                                Simulate
-                              </Button>
+                              {/* Disable Simulate when no questions selected and show tooltip */}
+                              {(!scenario.questions || scenario.questions.length === 0) ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" disabled className="shadow-sm">
+                                      <Send className="mr-2 h-4 w-4" />
+                                      Simulate
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Please select at least one question first</TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Button size="sm" onClick={() => handleSimulate(scenario.id)} className="shadow-sm">
+                                  <Send className="mr-2 h-4 w-4" />
+                                  Simulate
+                                </Button>
+                              )}
                             </>
                           )}
                           {scenario.status === "sent" && (
@@ -177,6 +306,7 @@ export function SurveyScenarioTable({ onViewResult }: SurveyScenarioTableProps) 
           onOpenChange={setModalOpen}
           scenarioId={selectedScenarioId}
           selectedQuestions={currentScenario.questions}
+          onSuccess={fetchScenarios}
         />
       )}
     </>

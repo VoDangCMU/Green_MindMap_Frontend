@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,29 +9,75 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useScenarioStore } from "@/store/useScenarioStore"
 import { useToast } from "@/hooks/use-toast"
 import { Plus } from "lucide-react"
+import { getAllLocations } from "@/lib/location"
+import { createSurveyScenario, getAllSurveyScenarios } from "@/lib/survey"
 
-const LOCATIONS = ["All Locations", "Đà Nẵng", "Hà Nội", "TP.HCM"]
+interface Location {
+  id: string
+  latitude: number
+  longitude: number
+  address: string
+  createdAt: string
+  updatedAt: string
+  gender: string
+}
 
-export function SurveyForm() {
+interface SurveyFormProps {
+  onScenarioCreated?: () => void
+}
+
+export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
   const { generateScenario } = useScenarioStore()
   const { toast } = useToast()
-  const [minAge, setMinAge] = useState("18")
-  const [maxAge, setMaxAge] = useState("25")
-  const [location, setLocation] = useState("")
-  const [percentage, setPercentage] = useState("50")
 
-  const handleGenerate = () => {
-    const min = Number.parseInt(minAge)
-    const max = Number.parseInt(maxAge)
-    const pct = Number.parseInt(percentage)
+  const [minAge, setMinAge] = useState("")
+  const [maxAge, setMaxAge] = useState("")
+  const [percentage, setPercentage] = useState("")
 
-    // Validation
-    if (!location) {
+  const [locations, setLocations] = useState<Location[]>([])
+  const [selectedAddress, setSelectedAddress] = useState("")
+  const [selectedGender, setSelectedGender] = useState("")
+  const [loadingLocs, setLoadingLocs] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  const uniqueLocations = locations.reduce((acc, current) => {
+    const exists = acc.find(loc => loc.address === current.address)
+    if (!exists) {
+      acc.push(current)
+    }
+    return acc
+  }, [] as Location[])
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const locs: Location[] = await getAllLocations()
+        console.log("Fetched locations:", locs)
+        setLocations(locs ?? [])
+      } catch (e) {
+        console.error("Failed to fetch locations:", e)
+      } finally {
+        setLoadingLocs(false)
+      }
+    }
+    fetchLocations()
+  }, [])
+
+  const handleGenerate = async () => {
+    const min = Number.parseInt(minAge, 10);
+    const max = Number.parseInt(maxAge, 10);
+    const pct = Number.parseInt(percentage, 10);
+    if (!selectedAddress) {
       toast({
         title: "Missing Location",
         description: "Please select a location.",
         variant: "destructive",
       })
+      return
+    }
+
+    if (Number.isNaN(min) || Number.isNaN(max)) {
+      toast({ title: "Invalid Age", description: "Ages must be numbers.", variant: "destructive" })
       return
     }
 
@@ -53,7 +99,7 @@ export function SurveyForm() {
       return
     }
 
-    if (pct < 1 || pct > 100) {
+    if (Number.isNaN(pct) || pct < 1 || pct > 100) {
       toast({
         title: "Invalid Percentage",
         description: "Percentage must be between 1 and 100.",
@@ -62,18 +108,33 @@ export function SurveyForm() {
       return
     }
 
-    generateScenario(min, max, location, pct / 100, "")
+    try {
+      setSubmitting(true)
+      const payload = { minAge: min, maxAge: max, address: selectedAddress, percentage: pct, gender: selectedGender || 'any' }
 
-    toast({
-      title: "Scenario Created",
-      description: "Your demographic scenario has been generated successfully.",
-    })
+      console.log("Creating scenario with payload:", payload);
+      const created = await createSurveyScenario(payload);
+      console.log("Scenario created:", created);
+      toast({ title: "Scenario Created", description: "Tạo scenario thành công." })
+      setMinAge("")
+      setMaxAge("")
+      setPercentage("")
+      setSelectedAddress("")
+      setSelectedGender("")
 
-    // Reset form
-    setMinAge("18")
-    setMaxAge("25")
-    setLocation("")
-    setPercentage("50")
+      if (onScenarioCreated) {
+        onScenarioCreated()
+      }
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Failed to create scenario. Please try again.",
+        variant: "destructive",
+      })
+      console.error("Failed to generate scenario:", e)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -84,9 +145,7 @@ export function SurveyForm() {
       <CardContent className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="minAge" className="text-sm font-medium">
-              Min Age
-            </Label>
+            <Label htmlFor="minAge" className="text-sm font-medium">Min Age</Label>
             <Input
               id="minAge"
               type="number"
@@ -94,15 +153,13 @@ export function SurveyForm() {
               max="100"
               value={minAge}
               onChange={(e) => setMinAge(e.target.value)}
-              placeholder="18"
+              placeholder="Enter minimum age"
               className="h-10"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="maxAge" className="text-sm font-medium">
-              Max Age
-            </Label>
+            <Label htmlFor="maxAge" className="text-sm font-medium">Max Age</Label>
             <Input
               id="maxAge"
               type="number"
@@ -110,33 +167,56 @@ export function SurveyForm() {
               max="100"
               value={maxAge}
               onChange={(e) => setMaxAge(e.target.value)}
-              placeholder="25"
+              placeholder="Enter maximum age"
               className="h-10"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location" className="text-sm font-medium">
-              Location
-            </Label>
-            <Select value={location} onValueChange={setLocation}>
-              <SelectTrigger id="location" className="h-10">
-                <SelectValue placeholder="Select location" />
+            <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+            <Select
+              value={selectedAddress}
+              onValueChange={setSelectedAddress}
+              disabled={loadingLocs || uniqueLocations.length === 0}
+            >
+              <SelectTrigger id="location" className="h-10 w-full">
+                <SelectValue
+                  placeholder="Select location"
+                />
               </SelectTrigger>
               <SelectContent>
-                {LOCATIONS.map((loc) => (
-                  <SelectItem key={loc} value={loc}>
-                    {loc}
-                  </SelectItem>
-                ))}
+                {uniqueLocations.length === 0 ? (
+                  <SelectItem value="__none" disabled>No locations</SelectItem>
+                ) : (
+                  uniqueLocations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.address}>
+                      {loc.address}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="percentage" className="text-sm font-medium">
-              Distribution Percentage (%)
-            </Label>
+            <Label htmlFor="gender" className="text-sm font-medium">Gender</Label>
+            <Select
+              value={selectedGender}
+              onValueChange={setSelectedGender}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="percentage" className="text-sm font-medium">Distribution Percentage (%)</Label>
             <Input
               id="percentage"
               type="number"
@@ -144,10 +224,13 @@ export function SurveyForm() {
               max="100"
               value={percentage}
               onChange={(e) => setPercentage(e.target.value)}
-              placeholder="50"
+              placeholder="Enter percentage"
               className="h-10"
             />
           </div>
+
+
+
         </div>
 
         <Button onClick={handleGenerate} className="h-11 w-full text-base font-medium shadow-sm">
