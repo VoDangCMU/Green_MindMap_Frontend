@@ -30,6 +30,7 @@ interface SurveySimulatorProps {
 interface SimulatedUser {
   userId: string
   user: string
+  gender?: string
   age: number
   location: string
   assignmentStatus: "assigned" | "not_assigned"
@@ -68,12 +69,71 @@ export function SurveySimulator({ selectedScenarioId, selectedScenario }: Survey
       console.log("Fetching simulated data for:", scenarioId)
       const response = await getSimulatedScenario(scenarioId)
       console.log("Simulated data response:", response)
+      const data = response?.data
 
-      if (response?.data) {
-        setSimulatedData(response.data)
-      } else {
+      if (!data) {
         console.warn("No simulation data found for scenario:", scenarioId)
         setSimulatedData(null)
+        return
+      }
+
+      // Normalize different possible response shapes from backend
+      if (data.users && (data.users.assigned || data.users.notAssigned)) {
+        // Already in expected shape
+        setSimulatedData({
+          scenarioId: data.scenarioId || data.id || "",
+          status: data.status || data.simulation?.status || "",
+          totalEligible: data.totalEligible ?? (data.users.assigned?.length ?? 0) + (data.users.notAssigned?.length ?? 0),
+          targetCount: data.targetCount ?? data.targetCount ?? 0,
+          assignedCount: data.assignedCount ?? (data.users.assigned?.length ?? 0),
+          notAssignedCount: data.notAssignedCount ?? (data.users.notAssigned?.length ?? 0),
+          users: {
+            assigned: data.users.assigned ?? [],
+            notAssigned: data.users.notAssigned ?? [],
+          },
+        })
+      } else if (Array.isArray(data.eligibleUsers)) {
+        // Newer shape: eligibleUsers with status field
+        const assigned = data.eligibleUsers.filter((u: any) => u.status === 'assigned').map((u: any) => ({
+          userId: u.userId || u.id,
+          user: u.fullName || u.username || u.user || "",
+          gender: u.gender,
+          age: u.age,
+          location: u.location || u.address || "",
+          assignmentStatus: u.status,
+          surveyStatus: u.surveyStatus || "",
+        }))
+
+        const notAssigned = data.eligibleUsers.filter((u: any) => u.status !== 'assigned').map((u: any) => ({
+          userId: u.userId || u.id,
+          user: u.fullName || u.username || u.user || "",
+          gender: u.gender,
+          age: u.age,
+          location: u.location || u.address || "",
+          assignmentStatus: u.status,
+          surveyStatus: u.surveyStatus || "",
+        }))
+
+        setSimulatedData({
+          scenarioId: data.scenarioId || "",
+          status: data.simulation?.status || data.status || "",
+          totalEligible: data.totalEligible ?? data.eligibleUsers.length,
+          targetCount: data.targetCount ?? data.targetCount ?? 0,
+          assignedCount: data.assigned ?? assigned.length,
+          notAssignedCount: data.unassigned ?? notAssigned.length,
+          users: { assigned, notAssigned },
+        })
+      } else {
+        // Fallback: try to use data as-is
+        setSimulatedData({
+          scenarioId: data.scenarioId || data.id || "",
+          status: data.status || data.simulation?.status || "",
+          totalEligible: data.totalEligible ?? 0,
+          targetCount: data.targetCount ?? 0,
+          assignedCount: data.assigned ?? 0,
+          notAssignedCount: data.unassigned ?? 0,
+          users: { assigned: [], notAssigned: [] },
+        })
       }
     } catch (error: any) {
       console.error("Error fetching simulated data:", error)
@@ -222,6 +282,7 @@ export function SurveySimulator({ selectedScenarioId, selectedScenario }: Survey
                 <TableHeader>
                   <TableRow className="bg-gray-50/50">
                     <TableHead className="font-semibold">User</TableHead>
+                    <TableHead className="font-semibold">Gender</TableHead>
                     <TableHead className="font-semibold">Age</TableHead>
                     <TableHead className="font-semibold">Location</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
@@ -233,6 +294,7 @@ export function SurveySimulator({ selectedScenarioId, selectedScenario }: Survey
                     return (
                       <TableRow key={user.userId} className="transition-colors hover:bg-gray-50/50">
                         <TableCell className="font-semibold">{user.user}</TableCell>
+                        <TableCell className="font-medium">{user.gender || "-"}</TableCell>
                         <TableCell className="font-medium text-muted-foreground">{user.age}</TableCell>
                         <TableCell className="font-medium">{user.location}</TableCell>
                         <TableCell>

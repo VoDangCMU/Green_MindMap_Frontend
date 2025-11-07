@@ -6,6 +6,7 @@ export interface CreateSurveyScenarioDTO {
     maxAge: number;
     adress: string;
     percentage: number;
+    gendder: string;
 }
 export const getAllSurveyScenarios = async (filters?: any) => {
     try {

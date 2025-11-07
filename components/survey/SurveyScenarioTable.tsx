@@ -34,6 +34,7 @@ interface ScenarioFromAPI {
     id: string
     question: string
   }>
+  gender?: string
   createdAt: string
   updatedAt: string
 }
@@ -109,8 +110,6 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
     try {
       await deleteSurveyScenario(scenarioId)
       await fetchScenarios()
-
-      // Gọi callback để reset view nếu scenario đang được xem bị xóa
       if (onScenarioDeleted) {
         onScenarioDeleted(scenarioId)
       }
@@ -204,6 +203,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                   <TableRow className="bg-gray-50/50">
                     <TableHead className="font-semibold">#</TableHead>
                     <TableHead className="font-semibold">Age Range</TableHead>
+                    <TableHead className="font-semibold">Gender</TableHead>
                     <TableHead className="font-semibold">Location</TableHead>
                     <TableHead className="font-semibold">%</TableHead>
                     <TableHead className="font-semibold">Questions</TableHead>
@@ -218,6 +218,9 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                       <TableCell className="font-semibold">
                         {scenario.minAge}–{scenario.maxAge}
                       </TableCell>
+                      <TableCell className="font-medium">  {scenario.gender
+                        ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
+                        : "All"}</TableCell>
                       <TableCell className="font-medium">{scenario.location?.address || "N/A"}</TableCell>
                       <TableCell className="font-semibold text-blue-600">
                         {scenario.percentage}%

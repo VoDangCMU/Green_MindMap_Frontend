@@ -19,6 +19,7 @@ interface Location {
   address: string
   createdAt: string
   updatedAt: string
+  gender: string
 }
 
 interface SurveyFormProps {
@@ -35,10 +36,10 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
 
   const [locations, setLocations] = useState<Location[]>([])
   const [selectedAddress, setSelectedAddress] = useState("")
+  const [selectedGender, setSelectedGender] = useState("")
   const [loadingLocs, setLoadingLocs] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  // Tạo danh sách locations không trùng địa chỉ
   const uniqueLocations = locations.reduce((acc, current) => {
     const exists = acc.find(loc => loc.address === current.address)
     if (!exists) {
@@ -66,7 +67,6 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
     const min = Number.parseInt(minAge, 10);
     const max = Number.parseInt(maxAge, 10);
     const pct = Number.parseInt(percentage, 10);
-
     if (!selectedAddress) {
       toast({
         title: "Missing Location",
@@ -107,9 +107,10 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
       })
       return
     }
+
     try {
       setSubmitting(true)
-      const payload = { minAge: min, maxAge: max, address: selectedAddress, percentage: pct }
+      const payload = { minAge: min, maxAge: max, address: selectedAddress, percentage: pct, gender: selectedGender || 'any' }
 
       console.log("Creating scenario with payload:", payload);
       const created = await createSurveyScenario(payload);
@@ -119,6 +120,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
       setMaxAge("")
       setPercentage("")
       setSelectedAddress("")
+      setSelectedGender("")
 
       if (onScenarioCreated) {
         onScenarioCreated()
@@ -197,6 +199,23 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="gender" className="text-sm font-medium">Gender</Label>
+            <Select
+              value={selectedGender}
+              onValueChange={setSelectedGender}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="percentage" className="text-sm font-medium">Distribution Percentage (%)</Label>
             <Input
               id="percentage"
@@ -209,6 +228,9 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
               className="h-10"
             />
           </div>
+
+
+
         </div>
 
         <Button onClick={handleGenerate} className="h-11 w-full text-base font-medium shadow-sm">
