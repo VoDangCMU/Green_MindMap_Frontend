@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, TreePine, FileText, Users, MessageSquare, LogOut, User } from "lucide-react"
+import { LayoutDashboard, TreePine, FileText, Users, MessageSquare, LogOut, User, Brain } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,6 +41,11 @@ const navItems = [
     title: "Users & Results",
     href: "/dashboard/users",
     icon: Users,
+  },
+  {
+    title: "User Management",
+    href: "/dashboard/users-ocean",
+    icon: Brain,
   },
 ]
 
