@@ -4,9 +4,9 @@ import { apiClient, apiPost, apiPut, apiDelete, getAccessToken } from "./auth";
 export interface CreateSurveyScenarioDTO {
     minAge: number;
     maxAge: number;
-    adress: string;
+    location: string;
     percentage: number;
-    gendder: string;
+    gender?: string | null;
 }
 export const getAllSurveyScenarios = async (filters?: any) => {
     try {
@@ -54,7 +54,6 @@ export const getSimulatedScenario = async (scenarioId: string) => {
         };
 
         const res = await apiClient(config);
-        console.log("API response for getSimulatedScenario:", res.data);
         return res.data;
     } catch (error: any) {
         console.error("Error in getSimulatedScenario:", error.response || error);

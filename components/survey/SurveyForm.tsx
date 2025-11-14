@@ -9,17 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useScenarioStore } from "@/store/useScenarioStore"
 import { useToast } from "@/hooks/use-toast"
 import { Plus } from "lucide-react"
-import { getAllLocations } from "@/lib/location"
-import { createSurveyScenario, getAllSurveyScenarios } from "@/lib/survey"
+import { createSurveyScenario } from "@/lib/survey"
+import { apiGet, getUsers } from "@/lib/auth"
 
-interface Location {
+interface User {
   id: string
-  latitude: number
-  longitude: number
-  address: string
+  username: string
+  email: string
+  fullName: string
+  gender: string
+  location: string
+  role: string
+  dateOfBirth: string
   createdAt: string
   updatedAt: string
-  gender: string
+  bigFive: any
 }
 
 interface SurveyFormProps {
@@ -34,34 +38,39 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
   const [maxAge, setMaxAge] = useState("")
   const [percentage, setPercentage] = useState("")
 
-  const [locations, setLocations] = useState<Location[]>([])
+  const [locations, setLocations] = useState<string[]>([])
   const [selectedAddress, setSelectedAddress] = useState("")
   const [selectedGender, setSelectedGender] = useState("")
   const [loadingLocs, setLoadingLocs] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  const uniqueLocations = locations.reduce((acc, current) => {
-    const exists = acc.find(loc => loc.address === current.address)
-    if (!exists) {
-      acc.push(current)
-    }
-    return acc
-  }, [] as Location[])
-
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const locs: Location[] = await getAllLocations()
-        console.log("Fetched locations:", locs)
-        setLocations(locs ?? [])
+        const response = await getUsers();
+        const users: User[] = Array.isArray(response.data) ? response.data : response.data?.data || []
+
+        const uniqueLocations = Array.from(new Set(
+          users
+            .filter((user) => user.location && user.location.trim() !== "")
+            .map((user) => user.location.trim())
+        )).sort()
+
+        setLocations(uniqueLocations)
       } catch (e) {
         console.error("Failed to fetch locations:", e)
+        toast({
+          title: "Error",
+          description: "Failed to fetch locations",
+          variant: "destructive",
+        })
+        setLocations([])
       } finally {
         setLoadingLocs(false)
       }
     }
     fetchLocations()
-  }, [])
+  }, [toast])
 
   const handleGenerate = async () => {
     const min = Number.parseInt(minAge, 10);
@@ -110,11 +119,9 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
 
     try {
       setSubmitting(true)
-      const payload = { minAge: min, maxAge: max, address: selectedAddress, percentage: pct, gender: selectedGender || 'any' }
+      const payload = { minAge: min, maxAge: max, location: selectedAddress, percentage: pct, gender: selectedGender || null }
 
-      console.log("Creating scenario with payload:", payload);
       const created = await createSurveyScenario(payload);
-      console.log("Scenario created:", created);
       toast({ title: "Scenario Created", description: "Tạo scenario thành công." })
       setMinAge("")
       setMaxAge("")
@@ -177,7 +184,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
             <Select
               value={selectedAddress}
               onValueChange={setSelectedAddress}
-              disabled={loadingLocs || uniqueLocations.length === 0}
+              disabled={loadingLocs || locations.length === 0}
             >
               <SelectTrigger id="location" className="h-10 w-full">
                 <SelectValue
@@ -185,12 +192,12 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
                 />
               </SelectTrigger>
               <SelectContent>
-                {uniqueLocations.length === 0 ? (
+                {locations.length === 0 ? (
                   <SelectItem value="__none" disabled>No locations</SelectItem>
                 ) : (
-                  uniqueLocations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.address}>
-                      {loc.address}
+                  locations.map((location) => (
+                    <SelectItem key={location} value={location}>
+                      {location}
                     </SelectItem>
                   ))
                 )}
@@ -228,8 +235,6 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
               className="h-10"
             />
           </div>
-
-
 
         </div>
 

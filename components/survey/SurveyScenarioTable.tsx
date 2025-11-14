@@ -22,19 +22,14 @@ interface ScenarioFromAPI {
   maxAge: number
   percentage: number
   status: "draft" | "sent"
-  location: {
-    id: string
-    latitude: number
-    longitude: number
-    address: string
-    createdAt: string
-    updatedAt: string
-  } | null
+  location?: string
+  address?: string
   questions: Array<{
     id: string
     question: string
   }>
-  gender?: string
+  gender?: string | null
+  simulatedSurvey?: any
   createdAt: string
   updatedAt: string
 }
@@ -81,7 +76,6 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
 
     try {
       const response = await simulateSurveyScenario(scenarioId)
-      console.log("Simulate response:", response)
 
       await fetchScenarios()
 
@@ -147,7 +141,6 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
       return
     }
 
-    console.log("Viewing result for scenario:", scenario)
     onViewResult(scenarioId, scenario)
   }
 
@@ -221,7 +214,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                       <TableCell className="font-medium">  {scenario.gender
                         ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
                         : "All"}</TableCell>
-                      <TableCell className="font-medium">{scenario.location?.address || "N/A"}</TableCell>
+                      <TableCell className="font-medium">{scenario.location || "N/A"}</TableCell>
                       <TableCell className="font-semibold text-blue-600">
                         {scenario.percentage}%
                       </TableCell>
@@ -251,7 +244,6 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                                 <ListChecks className="mr-2 h-4 w-4" />
                                 Select Qs
                               </Button>
-                              {/* Disable Simulate when no questions selected and show tooltip */}
                               {(!scenario.questions || scenario.questions.length === 0) ? (
                                 <Tooltip>
                                   <TooltipTrigger asChild>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Sparkles, Save } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getAllModels, generateTemplate as apiGenerateTemplate, createTemplates, combineQuestion, createQuestions } from "@/lib/auth"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -69,15 +69,12 @@ export default function QuestionBuilderPage() {
   const loadModels = async () => {
     try {
       setLoadingModels(true)
-      console.log('🔍 Loading models with Authorization header...')
       const response = await getAllModels()
 
 
       const modelsData = response.data || response || []
       setModels(modelsData)
-      console.log('Models loaded successfully:', modelsData)
     } catch (error) {
-      console.error(' Error loading models:', error)
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách model",
@@ -94,7 +91,6 @@ export default function QuestionBuilderPage() {
       setLoading(true)
       setSelectedModel(model)
 
-      console.log('🔍 Generating template with Authorization header...')
       const data: GeneratedTemplateResponse = await apiGenerateTemplate(model) // ✅ Sử dụng apiGenerateTemplate với Authorization header
       setTemplates(data.templates)
 
@@ -121,7 +117,6 @@ export default function QuestionBuilderPage() {
     try {
       setSaving(true)
 
-      console.log('Saving templates with Authorization header...')
       const data = await createTemplates({ templates })
 
       toast({
@@ -132,9 +127,7 @@ export default function QuestionBuilderPage() {
       // Clear templates after successful save
       setTemplates([])
       setSelectedModel(null)
-      console.log('Templates saved successfully:', data)
     } catch (error) {
-      console.error('Error saving templates:', error)
       toast({
         title: "Lỗi",
         description: "Không thể lưu templates",
@@ -176,15 +169,12 @@ export default function QuestionBuilderPage() {
 
     setGeneratingQuestions(true)
     try {
-      console.log('🔍 Generating questions from templates with Authorization header...')
       
       // Create payload with same structure as generateTemplate response
       const payload = {
         input: selectedModel,
         templates: selectedTemplates
       }
-
-      console.log('📤 Sending payload to combineQuestion:', payload)
 
       // Use combineQuestion API to generate questions from templates
       const response = await combineQuestion(payload)
@@ -196,10 +186,7 @@ export default function QuestionBuilderPage() {
         title: "Thành công",
         description: `Đã tạo ${questionsData.length} câu hỏi từ ${selectedTemplates.length} templates`,
       })
-      
-      console.log('✅ Questions generated successfully:', questionsData)
     } catch (error) {
-      console.error('❌ Error generating questions:', error)
       toast({
         title: "Lỗi",
         description: "Không thể tạo câu hỏi từ templates",
@@ -216,7 +203,6 @@ export default function QuestionBuilderPage() {
 
     setSavingQuestions(true)
     try {
-      console.log('Saving generated questions with Authorization header...')
       
       // Transform generatedQuestions to match the required payload format
       const questionsPayload = {
@@ -230,8 +216,6 @@ export default function QuestionBuilderPage() {
         }))
       }
 
-      console.log('Sending questions payload:', questionsPayload)
-
       // Use createQuestions API to save all questions at once
       const response = await createQuestions(questionsPayload)
 
@@ -243,10 +227,7 @@ export default function QuestionBuilderPage() {
       // Clear generated questions after successful save
       setGeneratedQuestions([])
       setSelectedTemplates([])
-      
-      console.log('✅ Questions saved successfully:', response)
     } catch (error) {
-      console.error('Error saving questions:', error)
       toast({
         title: "Lỗi",
         description: "Không thể lưu câu hỏi",
@@ -326,10 +307,7 @@ export default function QuestionBuilderPage() {
                               Đang tạo...
                             </>
                           ) : (
-                            <>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Tạo Template
-                            </>
+                            <>Tạo Template</>
                           )}
                         </Button>
                       </div>
@@ -359,10 +337,7 @@ export default function QuestionBuilderPage() {
                       Đang lưu...
                     </>
                   ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Lưu Templates
-                    </>
+                    <>Lưu Templates</>
                   )}
                 </Button>
               )}
@@ -381,7 +356,6 @@ export default function QuestionBuilderPage() {
 
             {templates.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Chọn một model và nhấn "Tạo Template"</p>
               </div>
             ) : (

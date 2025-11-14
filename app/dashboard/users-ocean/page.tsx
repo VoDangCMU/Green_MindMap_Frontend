@@ -83,32 +83,38 @@ export default function UserManagementPage() {
     const fetchUsers = async () => {
         setLoading(true)
         try {
-            const response = await apiGet("/big-five")
+            // Fetch user data with bigFive scores from single API
+            const response = await apiGet("/auth/get-alls")
 
-            // Handle both response.data array and direct array response
-            const dataArray = (response.data && Array.isArray(response.data)) ? response.data :
-                (Array.isArray(response) ? response : [])
+            // Get users array - handle both response.data and response.data.data
+            const usersArray = Array.isArray(response.data)
+                ? response.data
+                : (response.data?.data ? response.data.data : [])
 
-            if (dataArray.length > 0) {
-                const mappedUsers: User[] = dataArray.map((item: any, index: number) => ({
-                    id: item.user_id || `user_${index}`,
-                    userId: item.user_id,
-                    username: item.username || `user_${index}`,
-                    fullName: item.username || `User ${index + 1}`,
-                    email: item.email || `${item.username || `user_${index}`}@example.com`,
-                    age: item.age || 25,
-                    gender: item.gender || "unknown",
-                    location: item.location || "Vietnam",
-                    ocean: {
-                        openness: item.scores?.O || 0,
-                        conscientiousness: item.scores?.C || 0,
-                        extraversion: item.scores?.E || 0,
-                        agreeableness: item.scores?.A || 0,
-                        neuroticism: item.scores?.N || 0,
-                    },
-                    createdAt: item.createdAt || new Date().toISOString(),
-                    updatedAt: item.updatedAt || new Date().toISOString(),
-                }))
+            if (usersArray.length > 0) {
+                const mappedUsers: User[] = usersArray.map((user: any, index: number) => {
+                    const bigFive = user.bigFive
+
+                    return {
+                        id: user.id || `user_${index}`,
+                        userId: user.id,
+                        username: user.username || `user_${index}`,
+                        fullName: user.fullName || `User ${index + 1}`,
+                        email: user.email || `${user.username || `user_${index}`}@example.com`,
+                        age: new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear() || 25,
+                        gender: user.gender || "unknown",
+                        location: user.location || "Unknown",
+                        ocean: {
+                            openness: (bigFive && typeof bigFive.openness === 'number') ? Math.round(bigFive.openness * 100) : 0,
+                            conscientiousness: (bigFive && typeof bigFive.conscientiousness === 'number') ? Math.round(bigFive.conscientiousness * 100) : 0,
+                            extraversion: (bigFive && typeof bigFive.extraversion === 'number') ? Math.round(bigFive.extraversion * 100) : 0,
+                            agreeableness: (bigFive && typeof bigFive.agreeableness === 'number') ? Math.round(bigFive.agreeableness * 100) : 0,
+                            neuroticism: (bigFive && typeof bigFive.neuroticism === 'number') ? Math.round(bigFive.neuroticism * 100) : 0,
+                        },
+                        createdAt: user.createdAt || new Date().toISOString(),
+                        updatedAt: user.updatedAt || new Date().toISOString(),
+                    }
+                })
                 setUsers(mappedUsers)
             } else {
                 setUsers([])
@@ -124,9 +130,7 @@ export default function UserManagementPage() {
         } finally {
             setLoading(false)
         }
-    }
-
-    // Filter and sort users
+    }    // Filter and sort users
     const filteredUsers = users
         .filter((user) => {
             if (searchQuery && !user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) &&

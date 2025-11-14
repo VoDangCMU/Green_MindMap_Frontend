@@ -227,7 +227,6 @@ export const logout = () => {
 export const getAllModels = async (filters?: any) => {
   try {
     const token = getAccessToken();
-    console.log('getAllModels - Token from localStorage:', token);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -235,9 +234,6 @@ export const getAllModels = async (filters?: any) => {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('getAllModels - Authorization header added explicitly');
-    } else {
-      console.log('getAllModels - No token found');
     }
 
     const config: AxiosRequestConfig = {
@@ -251,8 +247,6 @@ export const getAllModels = async (filters?: any) => {
     if (filters) {
       config.params = filters;
     }
-
-    console.log('getAllModels - Final config:', config);
 
     // Use apiClient directly instead of going through authenticatedRequest
     const response = await apiClient(config);
@@ -283,8 +277,6 @@ export const deleteModel = async (id: string) => {
 export const getAllQuestions = async (filters?: any) => {
   try {
     const token = getAccessToken();
-    console.log('🔍 getAllQuestions - Token from localStorage:', token);
-
     // Explicitly create headers with Authorization
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -292,9 +284,6 @@ export const getAllQuestions = async (filters?: any) => {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('getAllQuestions - Authorization header added explicitly');
-    } else {
-      console.log('getAllQuestions - No token found');
     }
 
     const config: AxiosRequestConfig = {
@@ -306,8 +295,6 @@ export const getAllQuestions = async (filters?: any) => {
     if (filters) {
       config.params = filters;
     }
-
-    console.log('🔍 getAllQuestions - Final config:', config);
 
     // Use apiClient directly
     const response = await apiClient(config);
@@ -330,7 +317,6 @@ export const createQuestion = async (questionData: any) => {
 export const createQuestions = async (questionsData: any) => {
   try {
     const token = getAccessToken();
-    console.log('🔍 createQuestions - Token from localStorage:', token);
 
     // Explicitly create headers with Authorization
     const headers: Record<string, string> = {
@@ -339,9 +325,6 @@ export const createQuestions = async (questionsData: any) => {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('✅ createQuestions - Authorization header added explicitly');
-    } else {
-      console.log('createQuestions - No token found');
     }
 
     const config: AxiosRequestConfig = {
@@ -350,9 +333,6 @@ export const createQuestions = async (questionsData: any) => {
       headers: headers,
       data: questionsData,
     };
-
-    console.log('🔍 createQuestions - Final config:', config);
-    console.log('📤 createQuestions - Payload:', questionsData);
 
     // Use apiClient directly
     const response = await apiClient(config);
@@ -375,7 +355,6 @@ export const deleteQuestion = async (id: string) => {
 export const createTemplates = async (templatesData: any) => {
   try {
     const token = getAccessToken();
-    console.log('🔍 createTemplates - Token from localStorage:', token);
 
     // Explicitly create headers with Authorization
     const headers: Record<string, string> = {
@@ -384,9 +363,6 @@ export const createTemplates = async (templatesData: any) => {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('createTemplates - Authorization header added explicitly');
-    } else {
-      console.log('createTemplates - No token found');
     }
 
     const config: AxiosRequestConfig = {
@@ -395,8 +371,6 @@ export const createTemplates = async (templatesData: any) => {
       headers: headers,
       data: templatesData,
     };
-
-    console.log('🔍 createTemplates - Final config:', config);
 
     // Use apiClient directly
     const response = await apiClient(config);
@@ -436,4 +410,8 @@ export const combineQuestion = async (questionData: any) => {
   return aiApiPost('/combine_question', questionData);
 };
 
+
+export const getUsers = async () => {
+  return apiGet('/auth/get-alls');
+}
 export { apiClient, aiApiClient };

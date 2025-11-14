@@ -16,14 +16,13 @@ interface SurveySimulatorProps {
     maxAge: number
     percentage: number
     status: "draft" | "sent"
-    location: {
-      id: string
-      address: string
-    } | null
+    location?: string
+    gender?: string | null
     questions: Array<{
       id: string
       question: string
     }>
+    simulatedSurvey?: any
   } | null
 }
 
@@ -66,13 +65,10 @@ export function SurveySimulator({ selectedScenarioId, selectedScenario }: Survey
   const fetchSimulatedData = async (scenarioId: string) => {
     setLoading(true)
     try {
-      console.log("Fetching simulated data for:", scenarioId)
       const response = await getSimulatedScenario(scenarioId)
-      console.log("Simulated data response:", response)
       const data = response?.data
 
       if (!data) {
-        console.warn("No simulation data found for scenario:", scenarioId)
         setSimulatedData(null)
         return
       }
@@ -238,7 +234,7 @@ export function SurveySimulator({ selectedScenarioId, selectedScenario }: Survey
             <p className="font-medium text-blue-900">
               Scenario ID: <span className="font-bold">{simulatedData.scenarioId}</span> |
               Age Range: <span className="font-bold">{selectedScenario ? `${selectedScenario.minAge} - ${selectedScenario.maxAge}` : "N/A"}</span> |
-              Location: <span className="font-bold">{selectedScenario?.location?.address || "N/A"}</span> |
+              Location: <span className="font-bold">{selectedScenario?.location || "N/A"}</span> |
               Percentage: <span className="font-bold">{selectedScenario ? `${selectedScenario.percentage}%` : "N/A"}</span> |
               Status: <span className="font-bold">{simulatedData.status}</span> |
               Eligible Users: <span className="font-bold">{simulatedData.totalEligible}</span> |

@@ -42,16 +42,12 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
   const loadQuestionsFromAPI = async () => {
     setIsLoading(true)
     try {
-      console.log('🔍 Loading questions from API for modal...')
       const response = await getAllQuestions()
 
       // Extract questions from response (handle both array and object response)
       const questionsData = response.data || response || []
       setQuestions(questionsData)
-
-      console.log('✅ Questions loaded for modal:', questionsData)
     } catch (error) {
-      console.error('Error loading questions for modal:', error)
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách câu hỏi",

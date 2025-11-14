@@ -12,14 +12,13 @@ interface ScenarioData {
   maxAge: number
   percentage: number
   status: "draft" | "sent"
-  location: {
-    id: string
-    address: string
-  } | null
+  location?: string
+  gender?: string | null
   questions: Array<{
     id: string
     question: string
   }>
+  simulatedSurvey?: any
 }
 
 export default function SurveyPage() {
