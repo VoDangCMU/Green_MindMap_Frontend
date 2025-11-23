@@ -119,7 +119,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
 
     try {
       setSubmitting(true)
-      const payload = { minAge: min, maxAge: max, location: selectedAddress, percentage: pct, gender: selectedGender || null }
+      const payload = { minAge: min, maxAge: max, address: selectedAddress, percentage: pct, gender: selectedGender || null }
 
       const created = await createSurveyScenario(payload);
       toast({ title: "Scenario Created", description: "Tạo scenario thành công." })

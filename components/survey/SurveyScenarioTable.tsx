@@ -40,6 +40,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("")
   const [scenarios, setScenarios] = useState<ScenarioFromAPI[]>([])
   const [loading, setLoading] = useState(false)
+  const [errorScenarios, setErrorScenarios] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     fetchScenarios()
@@ -90,11 +91,27 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
         title: "Survey Distributed",
         description: "Survey has been sent to assigned users. Check results below.",
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Simulate error:", error)
+
+      // Extract error message from different error formats
+      let errorMessage = "Failed to simulate scenario"
+
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
+
+      // Mark scenario as error and store error message
+      setErrorScenarios(prev => ({
+        ...prev,
+        [scenarioId]: errorMessage
+      }))
+
       toast({
         title: "Error",
-        description: "Failed to simulate scenario",
+        description: errorMessage,
         variant: "destructive",
       })
     }
@@ -104,6 +121,14 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
     try {
       await deleteSurveyScenario(scenarioId)
       await fetchScenarios()
+
+      // Clear error state for this scenario
+      setErrorScenarios(prev => {
+        const updated = { ...prev }
+        delete updated[scenarioId]
+        return updated
+      })
+
       if (onScenarioDeleted) {
         onScenarioDeleted(scenarioId)
       }
@@ -205,86 +230,122 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scenarios.map((scenario, index) => (
-                    <TableRow key={scenario.id} className="transition-colors hover:bg-gray-50/50">
-                      <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                      <TableCell className="font-semibold">
-                        {scenario.minAge}–{scenario.maxAge}
-                      </TableCell>
-                      <TableCell className="font-medium">  {scenario.gender
-                        ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
-                        : "All"}</TableCell>
-                      <TableCell className="font-medium">{scenario.location || "N/A"}</TableCell>
-                      <TableCell className="font-semibold text-blue-600">
-                        {scenario.percentage}%
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-medium">
-                          {scenario.questions.length} selected
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={scenario.status === "sent" ? "default" : "secondary"}
-                          className="font-medium shadow-sm"
-                        >
-                          {scenario.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {scenario.status === "draft" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSelectQuestions(scenario.id)}
-                                className="shadow-sm"
-                              >
-                                <ListChecks className="mr-2 h-4 w-4" />
-                                Select Qs
-                              </Button>
-                              {(!scenario.questions || scenario.questions.length === 0) ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button size="sm" disabled className="shadow-sm">
-                                      <Send className="mr-2 h-4 w-4" />
-                                      Simulate
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Please select at least one question first</TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <Button size="sm" onClick={() => handleSimulate(scenario.id)} className="shadow-sm">
-                                  <Send className="mr-2 h-4 w-4" />
-                                  Simulate
-                                </Button>
-                              )}
-                            </>
-                          )}
-                          {scenario.status === "sent" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewResult(scenario.id)}
-                              className="shadow-sm"
+                  {scenarios.map((scenario, index) => {
+                    const hasError = errorScenarios[scenario.id]
+                    return (
+                      <TableRow
+                        key={scenario.id}
+                        className={`transition-colors ${hasError
+                          ? "bg-red-50 hover:bg-red-100/80 border-l-4 border-l-red-500"
+                          : "hover:bg-gray-50/50"
+                          }`}
+                      >
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="font-semibold">
+                          {scenario.minAge}–{scenario.maxAge}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {scenario.gender
+                            ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
+                            : "All"}
+                        </TableCell>
+                        <TableCell className="font-medium">{scenario.address || scenario.location || "N/A"}</TableCell>
+                        <TableCell className="font-semibold text-blue-600">
+                          {scenario.percentage}%
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium">
+                            {scenario.questions.length} selected
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {hasError ? (
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="destructive" className="font-medium shadow-sm">
+                                Error
+                              </Badge>
+                              <span className="text-xs text-red-700 font-medium">{hasError}</span>
+                            </div>
+                          ) : (
+                            <Badge
+                              variant={scenario.status === "sent" ? "default" : "secondary"}
+                              className="font-medium shadow-sm"
                             >
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Result
-                            </Button>
+                              {scenario.status}
+                            </Badge>
                           )}
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(scenario.id)}
-                            className="shadow-sm"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {hasError ? (
+                              <>
+                                <span className="text-xs text-red-600 font-semibold">Delete only</span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDelete(scenario.id)}
+                                  className="shadow-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                {scenario.status === "draft" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleSelectQuestions(scenario.id)}
+                                      className="shadow-sm"
+                                    >
+                                      <ListChecks className="mr-2 h-4 w-4" />
+                                      Select Qs
+                                    </Button>
+                                    {(!scenario.questions || scenario.questions.length === 0) ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="sm" disabled className="shadow-sm">
+                                            <Send className="mr-2 h-4 w-4" />
+                                            Simulate
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Please select at least one question first</TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <Button size="sm" onClick={() => handleSimulate(scenario.id)} className="shadow-sm">
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Simulate
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                                {scenario.status === "sent" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleViewResult(scenario.id)}
+                                    className="shadow-sm"
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Result
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDelete(scenario.id)}
+                                  className="shadow-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
