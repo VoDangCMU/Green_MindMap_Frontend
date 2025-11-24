@@ -38,11 +38,7 @@ export const attachQuestions = async (scenarioId: string, questionIds: string[])
 
 
 export const simulateSurveyScenario = async (scenarioId: string) => {
-    // Simulate the error response
-    return Promise.reject({
-        success: false,
-        message: "No eligible users found for this scenario"
-    });
+    return apiPost(`/scenarios-survey/simulate-scenario/${scenarioId}`, {})
 }
 
 export const getSimulatedScenario = async (scenarioId: string) => {
