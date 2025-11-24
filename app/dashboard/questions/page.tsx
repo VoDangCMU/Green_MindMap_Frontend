@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2 } from "lucide-react"
+import { Loader2, Save } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getAllModels, generateTemplate as apiGenerateTemplate, createTemplates, combineQuestion, createQuestions } from "@/lib/auth"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -169,7 +170,7 @@ export default function QuestionBuilderPage() {
 
     setGeneratingQuestions(true)
     try {
-      
+
       // Create payload with same structure as generateTemplate response
       const payload = {
         input: selectedModel,
@@ -181,7 +182,7 @@ export default function QuestionBuilderPage() {
 
       const questionsData = response.questions || response.data || response || []
       setGeneratedQuestions(questionsData)
-      
+
       toast({
         title: "Thành công",
         description: `Đã tạo ${questionsData.length} câu hỏi từ ${selectedTemplates.length} templates`,
@@ -203,7 +204,7 @@ export default function QuestionBuilderPage() {
 
     setSavingQuestions(true)
     try {
-      
+
       // Transform generatedQuestions to match the required payload format
       const questionsPayload = {
         questions: generatedQuestions.map(question => ({
@@ -223,7 +224,7 @@ export default function QuestionBuilderPage() {
         title: "Thành công",
         description: `Đã lưu ${generatedQuestions.length} câu hỏi`,
       })
-      
+
       // Clear generated questions after successful save
       setGeneratedQuestions([])
       setSelectedTemplates([])
@@ -307,7 +308,10 @@ export default function QuestionBuilderPage() {
                               Đang tạo...
                             </>
                           ) : (
-                            <>Tạo Template</>
+                            <>
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Tạo Template
+                            </>
                           )}
                         </Button>
                       </div>
@@ -337,7 +341,10 @@ export default function QuestionBuilderPage() {
                       Đang lưu...
                     </>
                   ) : (
-                    <>Lưu Templates</>
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Lưu Templates
+                    </>
                   )}
                 </Button>
               )}
@@ -356,6 +363,7 @@ export default function QuestionBuilderPage() {
 
             {templates.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
+                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Chọn một model và nhấn "Tạo Template"</p>
               </div>
             ) : (
