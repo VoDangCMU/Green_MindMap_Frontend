@@ -255,219 +255,234 @@ export default function QuestionBuilderPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Question Builder</h1>
-        <p className="text-muted-foreground">Chọn model để tạo templates câu hỏi khảo sát</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100/50 p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Question Builder</h1>
+          <p className="text-base text-muted-foreground">
+            Create question templates from models and generate survey questions
+          </p>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Models List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Danh sách Models</CardTitle>
-            <CardDescription>Chọn model để tạo template câu hỏi</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loadingModels ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : models.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">Chưa có model nào</div>
-            ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {models.map((model, index) => (
-                  <Card key={index} className="border-2">
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">{model.ocean}</Badge>
-                              <span className="font-medium">{model.behavior}</span>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <div>
-                                Tuổi: {model.age} • Giới tính: {model.gender}
-                              </div>
-                              <div>Địa điểm: {model.location}</div>
-                              <div className="text-xs italic">"{model.keywords}"</div>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => generateTemplate(model, index)}
-                          disabled={loading}
-                          className="w-full"
-                          size="sm"
-                        >
-                          {generatingModelId === index ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Đang tạo...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Tạo Template
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Generated Templates */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Templates đã tạo</CardTitle>
-                <CardDescription>
-                  {templates.length > 0 ? `${templates.length} templates từ model đã chọn` : "Chưa có template nào"}
-                </CardDescription>
-              </div>
-              {templates.length > 0 && (
-                <Button onClick={saveTemplates} disabled={saving}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang lưu...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Lưu Templates
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {selectedModel && templates.length > 0 && (
-              <div className="mb-4 p-3 bg-muted rounded-lg">
-                <div className="text-sm font-medium mb-1">Model đã chọn:</div>
-                <div className="text-xs text-muted-foreground">
-                  {selectedModel.ocean} • {selectedModel.behavior} • {selectedModel.age} tuổi • {selectedModel.gender} •{" "}
-                  {selectedModel.location}
+        {/* Main Grid */}
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Models List - Left Column */}
+          <Card className="shadow-lg">
+            <CardHeader className="border-b">
+              <CardTitle className="text-2xl">Danh sách Models</CardTitle>
+              <CardDescription className="text-base">Chọn model để tạo template câu hỏi</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              {loadingModels ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              </div>
-            )}
-
-            {templates.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Chọn một model và nhấn "Tạo Template"</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Templates list with checkboxes */}
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {templates.map((template, index) => (
-                    <Card key={index} className="border">
+              ) : models.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">Chưa có model nào</div>
+              ) : (
+                <div className="space-y-3 max-h-[650px] overflow-y-auto pr-2">
+                  {models.map((model, index) => (
+                    <Card key={index} className="border hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
-                        <div className="space-y-2">
-                          <div className="flex items-start gap-3">
-                            {/* Checkbox for template selection */}
-                            <Checkbox
-                              id={`template-${index}`}
-                              checked={selectedTemplates.some(t => t.id === template.id)}
-                              onCheckedChange={(checked) => handleTemplateSelect(template, checked as boolean)}
-                              className="mt-1"
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge className={getIntentBadgeColor(template.intent)}>{template.intent}</Badge>
-                                <span className="font-medium text-sm">{template.name}</span>
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-2 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="font-semibold">{model.ocean}</Badge>
+                                <span className="font-semibold text-sm">{model.behavior}</span>
                               </div>
-                              <p className="text-xs text-muted-foreground mb-2">{template.description}</p>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>
+                                  <span className="font-medium">Tuổi:</span> {model.age} • <span className="font-medium">Giới tính:</span> {model.gender}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Địa điểm:</span> {model.location}
+                                </div>
+                                <div className="text-xs italic text-gray-500">"{model.keywords}"</div>
+                              </div>
                             </div>
                           </div>
-
-                          <div className="bg-muted p-2 rounded text-sm ml-7">{template.filled_prompt}</div>
-
-                          <div className="text-xs space-y-1 ml-7">
-                            <div className="font-medium">Loại câu trả lời:</div>
-                            {template.answer.type === "scale" && (
-                              <div className="flex flex-wrap gap-1">
-                                {template.answer.labels?.map((label, i) => (
-                                  <Badge key={i} variant="outline" className="text-xs">
-                                    {template.answer.scale?.[i]}: {label}
-                                  </Badge>
-                                ))}
-                              </div>
+                          <Button
+                            onClick={() => generateTemplate(model, index)}
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                            size="sm"
+                          >
+                            {generatingModelId === index ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Đang tạo...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Tạo Template
+                              </>
                             )}
-                            {template.answer.type === "binary" && (
-                              <div className="flex gap-1">
-                                {template.answer.options?.map((option, i) => (
-                                  <Badge key={i} variant="outline" className="text-xs">
-                                    {option}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
 
-                {/* Generate Questions Button */}
-                {selectedTemplates.length > 0 && (
-                  <div className="flex justify-center pt-4 border-t">
-                    <Button
-                      onClick={generateQuestions}
-                      disabled={generatingQuestions || selectedTemplates.length === 0}
-                      size="lg"
-                      className="w-full max-w-md"
-                    >
-                      {generatingQuestions ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Đang sinh câu hỏi...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Sinh Câu Hỏi ({selectedTemplates.length} templates đã chọn)
-                        </>
-                      )}
-                    </Button>
-                  </div>
+          {/* Generated Templates - Right Column */}
+          <Card className="shadow-lg">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-2xl">Templates đã tạo</CardTitle>
+                  <CardDescription className="text-base">
+                    {templates.length > 0 ? `${templates.length} templates từ model đã chọn` : "Chưa có template nào"}
+                  </CardDescription>
+                </div>
+                {templates.length > 0 && (
+                  <Button
+                    onClick={saveTemplates}
+                    disabled={saving}
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                    size="sm"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Lưu
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {selectedModel && templates.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-semibold mb-1 text-blue-900">Model đã chọn:</div>
+                  <div className="text-xs text-blue-800">
+                    {selectedModel.ocean} • {selectedModel.behavior} • {selectedModel.age} tuổi • {selectedModel.gender} •{" "}
+                    {selectedModel.location}
+                  </div>
+                </div>
+              )}
 
-      {/* New section for question generation */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Câu hỏi đã tạo</CardTitle>
-                <CardDescription>
+              {templates.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-base">Chọn một model và nhấn "Tạo Template"</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Templates list */}
+                  <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
+                    {templates.map((template, index) => (
+                      <Card key={index} className="border hover:shadow-sm transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                id={`template-${index}`}
+                                checked={selectedTemplates.some(t => t.id === template.id)}
+                                onCheckedChange={(checked) => handleTemplateSelect(template, checked as boolean)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <Badge className={getIntentBadgeColor(template.intent)}>{template.intent}</Badge>
+                                  <span className="font-medium text-sm">{template.name}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-2">{template.description}</p>
+                              </div>
+                            </div>
+
+                            <div className="bg-gray-100 p-2 rounded text-sm ml-7 italic">{template.filled_prompt}</div>
+
+                            <div className="text-xs space-y-1 ml-7">
+                              <div className="font-semibold text-gray-700">Loại câu trả lời:</div>
+                              {template.answer.type === "scale" && (
+                                <div className="flex flex-wrap gap-1">
+                                  {template.answer.labels?.map((label, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs">
+                                      {template.answer.scale?.[i]}: {label}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {template.answer.type === "binary" && (
+                                <div className="flex gap-1">
+                                  {template.answer.options?.map((option, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs">
+                                      {option}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Generate Questions Button */}
+                  {selectedTemplates.length > 0 && (
+                    <div className="flex justify-center pt-4 border-t mt-4">
+                      <Button
+                        onClick={generateQuestions}
+                        disabled={generatingQuestions || selectedTemplates.length === 0}
+                        size="lg"
+                        className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                      >
+                        {generatingQuestions ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Đang sinh câu hỏi...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Sinh Câu Hỏi ({selectedTemplates.length})
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Generated Questions Section */}
+        <Card className="shadow-lg">
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <CardTitle className="text-2xl">Câu hỏi đã tạo</CardTitle>
+                <CardDescription className="text-base">
                   {generatedQuestions.length > 0
                     ? `${generatedQuestions.length} câu hỏi từ ${selectedTemplates.length} templates đã chọn`
                     : "Chưa có câu hỏi nào"}
                 </CardDescription>
               </div>
               {generatedQuestions.length > 0 && (
-                <Button onClick={saveGeneratedQuestions} disabled={savingQuestions}>
+                <Button
+                  onClick={saveGeneratedQuestions}
+                  disabled={savingQuestions}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                  size="sm"
+                >
                   {savingQuestions ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang lưu câu hỏi...
+                      Đang lưu...
                     </>
                   ) : (
                     <>
@@ -479,21 +494,21 @@ export default function QuestionBuilderPage() {
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {generatedQuestions.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Chọn ít nhất một template và nhấn "Sinh Câu Hỏi"</p>
+              <div className="text-center py-16 text-muted-foreground">
+                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-base">Chọn ít nhất một template và nhấn "Sinh Câu Hỏi"</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                 {generatedQuestions.map((question, index) => (
-                  <Card key={index} className="border">
+                  <Card key={index} className="border hover:shadow-sm transition-shadow">
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <Badge className={getIntentBadgeColor(question.intent)}>{question.intent}</Badge>
                               <span className="font-medium text-sm">{question.name}</span>
                             </div>
@@ -501,10 +516,10 @@ export default function QuestionBuilderPage() {
                           </div>
                         </div>
 
-                        <div className="bg-muted p-2 rounded text-sm">{question.filled_prompt}</div>
+                        <div className="bg-gray-100 p-2 rounded text-sm italic">{question.filled_prompt}</div>
 
                         <div className="text-xs space-y-1">
-                          <div className="font-medium">Loại câu trả lời: {question.question_type}</div>
+                          <div className="font-semibold text-gray-700">Loại câu trả lời: {question.question_type}</div>
                           {question.answer.type === "scale" && question.answer.labels && (
                             <div className="flex flex-wrap gap-1">
                               {question.answer.labels.map((label: string, i: number) => (

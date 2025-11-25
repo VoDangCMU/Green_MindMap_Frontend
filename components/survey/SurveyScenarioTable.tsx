@@ -22,7 +22,7 @@ interface ScenarioFromAPI {
   minAge: number
   maxAge: number
   percentage: number
-  status: "draft" | "sent"
+  status: "draft" | "sent" | "active"
   location?: string
   address?: string
   questions: Array<{

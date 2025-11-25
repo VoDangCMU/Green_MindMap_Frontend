@@ -213,7 +213,7 @@ export default function UserManagementPage() {
                 </div>
 
                 {/* Statistics Cards */}
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
                     <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-semibold text-blue-900">Total Users</CardTitle>
@@ -237,6 +237,58 @@ export default function UserManagementPage() {
                         <CardContent>
                             <div className="text-3xl font-bold text-purple-900">{avgOCEAN.openness}</div>
                             <Progress value={avgOCEAN.openness} className="mt-3 h-2" />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-semibold text-green-900">Avg Conscientiousness</CardTitle>
+                            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                <TrendingUp className="h-5 w-5 text-green-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-green-900">{avgOCEAN.conscientiousness}</div>
+                            <Progress value={avgOCEAN.conscientiousness} className="mt-3 h-2" />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-semibold text-red-900">Avg Extraversion</CardTitle>
+                            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                <TrendingUp className="h-5 w-5 text-red-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-red-900">{avgOCEAN.extraversion}</div>
+                            <Progress value={avgOCEAN.extraversion} className="mt-3 h-2" />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-pink-50 to-pink-100/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-semibold text-pink-900">Avg Agreeableness</CardTitle>
+                            <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                                <TrendingUp className="h-5 w-5 text-pink-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-pink-900">{avgOCEAN.agreeableness}</div>
+                            <Progress value={avgOCEAN.agreeableness} className="mt-3 h-2" />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-amber-50 to-amber-100/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-semibold text-amber-900">Avg Neuroticism</CardTitle>
+                            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                                <TrendingUp className="h-5 w-5 text-amber-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold text-amber-900">{avgOCEAN.neuroticism}</div>
+                            <Progress value={avgOCEAN.neuroticism} className="mt-3 h-2" />
                         </CardContent>
                     </Card>
 
