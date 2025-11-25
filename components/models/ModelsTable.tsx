@@ -268,11 +268,11 @@ export function ModelsTable() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Actual</p>
-                          <p className="font-medium">{parseFloat(feedback.actual).toFixed(2)}%</p>
+                          <p className="font-medium">{100*parseFloat(feedback.actual).toFixed(2)}%</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Deviation</p>
-                          <p className="font-medium text-red-500">{parseFloat(feedback.deviation).toFixed(2)}%</p>
+                          <p className="font-medium text-red-500">{100*parseFloat(feedback.deviation).toFixed(2)}%</p>
                         </div>
                       </div>
 
