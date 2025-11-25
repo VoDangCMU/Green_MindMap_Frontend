@@ -64,17 +64,25 @@ export function ModelsTable() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem("token")
-      
+      const token = localStorage.getItem("access_token")
+
+      if (!token) {
+        console.error("No access token found")
+        setLoading(false)
+        return
+      }
+
       const [modelsResponse, feedbacksResponse] = await Promise.all([
         fetch("https://green-api.khoav4.com/models/getAll", {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }),
         fetch("https://green-api.khoav4.com/models/feedbacks", {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }),
       ])
@@ -256,15 +264,15 @@ export function ModelsTable() {
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-muted-foreground">Expected</p>
-                          <p className="font-medium">{feedback.expected}%</p>
+                          <p className="font-medium">{(parseFloat(feedback.expected) * 100).toFixed(2)}%</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Actual</p>
-                          <p className="font-medium">{feedback.actual}%</p>
+                          <p className="font-medium">{parseFloat(feedback.actual).toFixed(2)}%</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Deviation</p>
-                          <p className="font-medium text-red-500">{feedback.deviation}%</p>
+                          <p className="font-medium text-red-500">{parseFloat(feedback.deviation).toFixed(2)}%</p>
                         </div>
                       </div>
 
@@ -291,4 +299,3 @@ export function ModelsTable() {
     </>
   )
 }
-
