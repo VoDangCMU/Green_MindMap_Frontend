@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -14,36 +14,38 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuth, isLoading, isHydrated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (isHydrated && !isLoading) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated && !isLoading && mounted) {
       const isPublicRoute = publicRoutes.includes(pathname);
 
       if (!isAuth && !isPublicRoute) {
-        // Redirect to login if not authenticated and not on a public route
         router.push("/login");
       } else if (isAuth && pathname === "/login") {
-        // Redirect to dashboard if authenticated and on login page
         router.push("/dashboard");
       }
     }
-  }, [isAuth, isLoading, isHydrated, pathname, router]);
+  }, [isAuth, isLoading, isHydrated, pathname, router, mounted]);
 
-  // Show loading spinner while hydrating or checking authentication
-  if (!isHydrated || isLoading) {
+  // Always render the same structure to avoid hydration mismatch
+  if (!mounted || !isHydrated || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // Don't render protected content if not authenticated
   const isPublicRoute = publicRoutes.includes(pathname);
   if (!isAuth && !isPublicRoute) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }

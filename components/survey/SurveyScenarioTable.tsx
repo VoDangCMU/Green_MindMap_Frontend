@@ -14,6 +14,7 @@ import { getAllSurveyScenarios, simulateSurveyScenario, deleteSurveyScenario } f
 interface SurveyScenarioTableProps {
   onViewResult: (scenarioId: string, scenario: ScenarioFromAPI) => void
   onScenarioDeleted?: (deletedScenarioId: string) => void
+  key?: number
 }
 
 interface ScenarioFromAPI {
@@ -34,7 +35,7 @@ interface ScenarioFromAPI {
   updatedAt: string
 }
 
-export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyScenarioTableProps) {
+export function SurveyScenarioTable({ onViewResult, onScenarioDeleted, key }: SurveyScenarioTableProps) {
   const { toast } = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("")
@@ -44,8 +45,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
 
   useEffect(() => {
     fetchScenarios()
-  }, [])
-
+  }, [key]) // Add key to dependency array to trigger re-fetch when key changes
   const fetchScenarios = async () => {
     setLoading(true)
     try {
@@ -76,7 +76,10 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
     }
 
     try {
-      const response = await simulateSurveyScenario(scenarioId)
+      // Extract question IDs from the scenario
+      const questionIds = scenario.questions.map((q) => q.id)
+
+      const response = await simulateSurveyScenario(scenarioId, questionIds)
 
       await fetchScenarios()
 
@@ -291,7 +294,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                               </>
                             ) : (
                               <>
-                                {scenario.status === "draft" && (
+                                {(scenario.status === "draft" || scenario.status === "active") && (
                                   <>
                                     <Button
                                       size="sm"
