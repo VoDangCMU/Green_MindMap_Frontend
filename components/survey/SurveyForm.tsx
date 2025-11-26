@@ -37,49 +37,18 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
   const [minAge, setMinAge] = useState("")
   const [maxAge, setMaxAge] = useState("")
   const [percentage, setPercentage] = useState("")
-
-  const [locations, setLocations] = useState<string[]>([])
-  const [selectedAddress, setSelectedAddress] = useState("")
+  const [location, setLocation] = useState("")
   const [selectedGender, setSelectedGender] = useState("")
-  const [loadingLocs, setLoadingLocs] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const response = await getUsers();
-        const users: User[] = Array.isArray(response.data) ? response.data : response.data?.data || []
-
-        const uniqueLocations = Array.from(new Set(
-          users
-            .filter((user) => user.location && user.location.trim() !== "")
-            .map((user) => user.location.trim())
-        )).sort()
-
-        setLocations(uniqueLocations)
-      } catch (e) {
-        console.error("Failed to fetch locations:", e)
-        toast({
-          title: "Error",
-          description: "Failed to fetch locations",
-          variant: "destructive",
-        })
-        setLocations([])
-      } finally {
-        setLoadingLocs(false)
-      }
-    }
-    fetchLocations()
-  }, [toast])
 
   const handleGenerate = async () => {
     const min = Number.parseInt(minAge, 10);
     const max = Number.parseInt(maxAge, 10);
     const pct = Number.parseInt(percentage, 10);
-    if (!selectedAddress) {
+    if (!location || location.trim() === "") {
       toast({
         title: "Missing Location",
-        description: "Please select a location.",
+        description: "Please enter a location.",
         variant: "destructive",
       })
       return
@@ -122,7 +91,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
       const payload = {
         minAge: min,
         maxAge: max,
-        location: selectedAddress, // Changed from 'address' to 'location' to match backend
+        location: location.trim(),
         percentage: pct,
         gender: selectedGender || null,
         questionIds: [] // Initialize with empty array, questions will be selected later
@@ -133,7 +102,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
       setMinAge("")
       setMaxAge("")
       setPercentage("")
-      setSelectedAddress("")
+      setLocation("")
       setSelectedGender("")
 
       if (onScenarioCreated) {
@@ -188,28 +157,14 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-            <Select
-              value={selectedAddress}
-              onValueChange={setSelectedAddress}
-              disabled={loadingLocs || locations.length === 0}
-            >
-              <SelectTrigger id="location" className="h-10 w-full">
-                <SelectValue
-                  placeholder="Select location"
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.length === 0 ? (
-                  <SelectItem value="__none" disabled>No locations</SelectItem>
-                ) : (
-                  locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <Input
+              id="location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Enter location"
+              className="h-10"
+            />
           </div>
 
           <div className="space-y-2">
@@ -245,9 +200,13 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
 
         </div>
 
-        <Button onClick={handleGenerate} className="h-11 w-full text-base font-medium shadow-sm">
+        <Button
+          onClick={handleGenerate}
+          className="h-11 w-full text-base font-medium shadow-sm"
+          disabled={submitting}
+        >
           <Plus className="mr-2 h-5 w-5" />
-          Generate Scenario
+          {submitting ? "Creating..." : "Generate Scenario"}
         </Button>
       </CardContent>
     </Card>
