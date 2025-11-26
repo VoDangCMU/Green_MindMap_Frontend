@@ -37,8 +37,8 @@ export const attachQuestions = async (scenarioId: string, questionIds: string[])
 }
 
 
-export const simulateSurveyScenario = async (scenarioId: string, questionIds: string[]) => {
-    return apiPost(`/scenarios-survey/simulate-scenario/${scenarioId}`, { questionIds })
+export const simulateSurveyScenario = async (scenarioId: string) => {
+    return apiPost(`/scenarios-survey/simulate-scenario/${scenarioId}`, {})
 }
 
 export const getSimulatedScenario = async (scenarioId: string) => {

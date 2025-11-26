@@ -32,7 +32,6 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load questions from API when modal opens
   useEffect(() => {
     if (open) {
       loadQuestionsFromAPI()

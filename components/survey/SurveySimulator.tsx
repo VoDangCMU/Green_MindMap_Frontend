@@ -287,10 +287,13 @@ export function SurveySimulator({ selectedScenarioId, selectedScenario }: Survey
                 <TableBody>
                   {allUsers.map((user) => {
                     const isAssigned = user.assignmentStatus === "assigned"
+                    const genderLabel = user.gender
+                      ? `${user.gender.charAt(0).toUpperCase()}${user.gender.slice(1)}`
+                      : "N/A"
                     return (
                       <TableRow key={user.userId} className="transition-colors hover:bg-gray-50/50">
                         <TableCell className="font-semibold">{user.user}</TableCell>
-                        <TableCell className="font-medium">{user.gender || "-"}</TableCell>
+                        <TableCell className="font-medium">{genderLabel}</TableCell>
                         <TableCell className="font-medium text-muted-foreground">{user.age}</TableCell>
                         <TableCell className="font-medium">{user.location}</TableCell>
                         <TableCell>

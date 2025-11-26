@@ -14,7 +14,6 @@ import { getAllSurveyScenarios, simulateSurveyScenario, deleteSurveyScenario } f
 interface SurveyScenarioTableProps {
   onViewResult: (scenarioId: string, scenario: ScenarioFromAPI) => void
   onScenarioDeleted?: (deletedScenarioId: string) => void
-  key?: number
 }
 
 interface ScenarioFromAPI {
@@ -22,7 +21,7 @@ interface ScenarioFromAPI {
   minAge: number
   maxAge: number
   percentage: number
-  status: "draft" | "sent" | "active"
+  status: "draft" | "sent"
   location?: string
   address?: string
   questions: Array<{
@@ -35,7 +34,7 @@ interface ScenarioFromAPI {
   updatedAt: string
 }
 
-export function SurveyScenarioTable({ onViewResult, onScenarioDeleted, key }: SurveyScenarioTableProps) {
+export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyScenarioTableProps) {
   const { toast } = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("")
@@ -45,7 +44,8 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted, key }: Su
 
   useEffect(() => {
     fetchScenarios()
-  }, [key]) // Add key to dependency array to trigger re-fetch when key changes
+  }, [])
+
   const fetchScenarios = async () => {
     setLoading(true)
     try {
@@ -76,10 +76,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted, key }: Su
     }
 
     try {
-      // Extract question IDs from the scenario
-      const questionIds = scenario.questions.map((q) => q.id)
-
-      const response = await simulateSurveyScenario(scenarioId, questionIds)
+      const response = await simulateSurveyScenario(scenarioId)
 
       await fetchScenarios()
 
@@ -294,7 +291,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted, key }: Su
                               </>
                             ) : (
                               <>
-                                {(scenario.status === "draft" || scenario.status === "active") && (
+                                {scenario.status === "draft" && (
                                   <>
                                     <Button
                                       size="sm"
