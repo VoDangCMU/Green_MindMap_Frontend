@@ -11,6 +11,7 @@ import { getAllModels, generateTemplate as apiGenerateTemplate, createTemplates,
 import { Checkbox } from "@/components/ui/checkbox"
 
 interface Model {
+  id: string
   ocean: string
   behavior: string
   age: string
@@ -202,18 +203,24 @@ export default function QuestionBuilderPage() {
   const saveGeneratedQuestions = async () => {
     if (generatedQuestions.length === 0) return
 
+    if (!selectedModel?.id) {
+      toast({
+        title: "Lỗi",
+        description: "Không có model được chọn hoặc model không có ID",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSavingQuestions(true)
     try {
 
       // Transform generatedQuestions to match the required payload format
       const questionsPayload = {
         questions: generatedQuestions.map(question => ({
-          id: question.id,
-          name: question.name,
-          intent: question.intent,
-          question_type: question.question_type,
-          filled_prompt: question.filled_prompt,
-          answer: question.answer
+          question: question.filled_prompt,
+          templateId: question.id,
+          modelId: selectedModel.id
         }))
       }
 
