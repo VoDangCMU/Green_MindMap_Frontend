@@ -4,7 +4,6 @@ import { SurveyForm } from "@/components/survey/SurveyForm"
 import { SurveyScenarioTable } from "@/components/survey/SurveyScenarioTable"
 import { SurveySimulator } from "@/components/survey/SurveySimulator"
 import { useState } from "react"
-import { QuestionsPanel } from "@/components/survey/QuestionsPanel"
 
 interface ScenarioData {
   id: string
@@ -53,7 +52,6 @@ export default function SurveyPage() {
           </p>
         </div>
 
-        <QuestionsPanel />
         <SurveyForm onScenarioCreated={handleScenarioCreated} />
         <SurveyScenarioTable
           key={refreshKey}

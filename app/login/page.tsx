@@ -46,7 +46,7 @@ export default function LoginPage() {
     try {
       const result = await loginWithEmail(data);
 
-      // Use auth context to manage login state
+      // Use auth context to questions-manage login state
       login(result.user, result.access_token, result.refresh_token);
 
       // Redirect to dashboard
@@ -72,7 +72,7 @@ export default function LoginPage() {
 
       const result = await loginWithGoogle({ token: googleToken });
 
-      // Use auth context to manage login state
+      // Use auth context to questions-manage login state
       login(result.user, result.access_token, result.refresh_token);
 
       // Redirect to dashboard

@@ -38,6 +38,11 @@ const navItems = [
     icon: MessageSquare,
   },
   {
+    title: "Question Manager",
+    href: "/dashboard/questions-manage",
+    icon: FileText,
+  },
+  {
     title: "Survey Manager",
     href: "/dashboard/survey",
     icon: FileText,
