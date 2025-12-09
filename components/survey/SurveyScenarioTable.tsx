@@ -300,7 +300,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                                       className="shadow-sm"
                                     >
                                       <ListChecks className="mr-2 h-4 w-4" />
-                                      Select Qs
+                                      Select Set Questions
                                     </Button>
                                     {(!scenario.questions || scenario.questions.length === 0) ? (
                                       <Tooltip>

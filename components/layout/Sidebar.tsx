@@ -22,6 +22,11 @@ const navItems = [
 		icon: CheckCircle,
 	},
 	{
+		title: "Question Manager",
+		href: "/dashboard/questions-manage",
+		icon: FileText,
+	},
+	{
 		title: "Survey Manager",
 		href: "/dashboard/survey",
 		icon: FileText,
