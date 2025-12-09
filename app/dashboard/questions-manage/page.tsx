@@ -28,47 +28,31 @@ interface Question {
 
 const MOCK_DB_QUESTIONS: Question[] = [
   {
-    id: "a3f1d6b2-1c2b-4d3a-8f1a-111111111111",
-    name: "Bạn thường dùng sản phẩm bao lâu 1 lần?",
+    id: "T_FREQ_01",
+    name: "Tần suất thực hiện hành động 1",
     intent: "frequency",
-    filled_prompt: "Trong tháng qua, bạn đã sử dụng sản phẩm X bao nhiêu lần?",
-    question_type: "scale",
+    filled_prompt: `Người có tính cách O, giới tính Nam, độ tuổi 18, mức độ yêu thích hành động khám phá quán cafe Đà Nẵng mới là như thế nào?\nLoại câu trả lời: frequency\n1: Không bao giờ\n2: Thỉnh thoảng\n3: Thường xuyên\n4: Rất thường xuyên`,
+    question_type: "frequency",
   },
   {
-    id: "b4f2d7c3-2d3c-5e4b-9f2b-222222222222",
-    name: "Bạn có hài lòng với dịch vụ?",
+    id: "T_FREQ_02",
+    name: "Tần suất thực hiện hành động 2",
+    intent: "frequency",
+    filled_prompt: `Người có tính cách O, thường thực hiện hành động khám phá quán cafe Đà Nẵng mới với tần suất nào?\nLoại câu trả lời: frequency\n1: Không bao giờ\n2: Thỉnh thoảng\n3: Thường xuyên\n4: Rất thường xuyên`,
+    question_type: "frequency",
+  },
+  {
+    id: "T_YN_01",
+    name: "Thói quen hành động 1",
     intent: "yesno",
-    filled_prompt: "Bạn có hài lòng với dịch vụ của chúng tôi không?",
-    question_type: "binary",
-  },
-  {
-    id: "c5f3e8d4-3e4d-6f5c-af3c-333333333333",
-    name: "Đánh giá trải nghiệm tổng thể",
-    intent: "rating",
-    filled_prompt: "Xin vui lòng đánh giá trải nghiệm tổng thể của bạn với sản phẩm (1-5)",
-    question_type: "rating",
-  },
-]
-
-const MOCK_EXPERT_QUESTIONS: Question[] = [
-  {
-    id: "d6f4a9e5-4f5e-7g6d-bf4d-444444444444",
-    name: "Bạn chọn tính năng nào nhiều nhất?",
-    intent: "choice",
-    filled_prompt: "Trong các tính năng A, B, C, bạn thường dùng tính năng nào nhất?",
-    question_type: "single_choice",
-  },
-  {
-    id: "e7f5b0f6-5g6f-8h7e-cg5e-555555555555",
-    name: "Tần suất tiếp cận thông tin",
-    intent: "frequency",
-    filled_prompt: "Bạn tiếp cận thông tin về sản phẩm qua kênh nào thường xuyên nhất?",
-    question_type: "multiple_choice",
+    filled_prompt: `Người có tính cách O, giới tính Nam, độ tuổi 18, có thực hiện khám phá quán cafe Đà Nẵng mới không?\nLoại câu trả lời: yesno\nCó\nKhông`,
+    question_type: "yesno",
   },
 ]
 
 export default function ManageQuestionsPage() {
-  const [dbSelected, setDbSelected] = useState<Record<string, boolean>>({})
+  // DB questions are editable: start from mock DB. Expert list starts empty.
+  const [dbQuestions, setDbQuestions] = useState<Question[]>(MOCK_DB_QUESTIONS)
   const [expertSelected, setExpertSelected] = useState<Record<string, boolean>>({})
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -77,15 +61,43 @@ export default function ManageQuestionsPage() {
   const [intentFilter, setIntentFilter] = useState("")
   const { toast } = useToast()
 
-  // Ratings state for rating-type questions (1-5)
-  const [ratings, setRatings] = useState<Record<string, number | "">>({})
+  // drag-and-drop ordering state for Expert Questions
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
-  const handleRatingChange = (id: string, value: string) => {
-    setRatings(prev => ({ ...prev, [id]: value === "" ? "" : Number(value) }))
+  const onDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    setDraggedId(id)
+    e.dataTransfer.effectAllowed = "move"
+    try { e.dataTransfer.setData("text/plain", id) } catch (err) { /* some browsers require try/catch */ }
+  }
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
+    e.preventDefault()
+    const sourceId = draggedId || e.dataTransfer.getData("text/plain")
+    if (!sourceId || sourceId === targetId) {
+      setDraggedId(null)
+      return
+    }
+
+    setExpertQuestions(prev => {
+      const copy = [...prev]
+      const fromIndex = copy.findIndex(x => x.id === sourceId)
+      const toIndex = copy.findIndex(x => x.id === targetId)
+      if (fromIndex === -1 || toIndex === -1) return prev
+      const [moved] = copy.splice(fromIndex, 1)
+      copy.splice(toIndex, 0, moved)
+      return copy
+    })
+
+    setDraggedId(null)
   }
 
   // New state: questions-manage expert questions list so we can edit/delete/reorder
-  const [expertQuestions, setExpertQuestions] = useState<Question[]>(MOCK_EXPERT_QUESTIONS)
+  const [expertQuestions, setExpertQuestions] = useState<Question[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState<Partial<Question>>({})
 
@@ -119,18 +131,25 @@ export default function ManageQuestionsPage() {
     }
   }, [questionSets])
 
-  const toggleDb = (id: string, value: boolean) => {
-    setDbSelected(prev => ({ ...prev, [id]: value }))
-  }
-
   const toggleExpert = (id: string, value: boolean) => {
     setExpertSelected(prev => ({ ...prev, [id]: value }))
   }
 
+  // Move a DB question into Expert questions for editing/rating
+  const moveDbToExpert = (id: string) => {
+    const q = dbQuestions.find(d => d.id === id)
+    if (!q) return
+    setExpertQuestions(prev => [q, ...prev])
+    setDbQuestions(prev => prev.filter(d => d.id !== id))
+    // remove any lingering selection state
+    setExpertSelected(prev => ({ ...prev }))
+    toast({ title: "Moved", description: `Question moved to Expert list` })
+  }
+
   const createQuestionSet = () => {
-    const selectedDbIds = Object.entries(dbSelected).filter(([_, v]) => v).map(([k]) => k)
+    // After DB questions are moved to Expert list, only Expert-side selections apply
     const selectedExpertIds = Object.entries(expertSelected).filter(([_, v]) => v).map(([k]) => k)
-    const questionIds = [...selectedDbIds, ...selectedExpertIds]
+    const questionIds = [...selectedExpertIds]
 
     if (name.trim() === "") {
       toast({ title: "Error", description: "Please enter a name for the question set", variant: "destructive" })
@@ -154,25 +173,22 @@ export default function ManageQuestionsPage() {
 
     toast({ title: "Success", description: `Question set "${newSet.name}" created (${questionIds.length} questions)` })
 
-    // Reset form and only unselect the questions that were used in the created set
+    // Reset form
     setName("")
     setDescription("")
 
-    setDbSelected(prev => {
-      const copy = { ...prev }
-      selectedDbIds.forEach(id => {
-        if (id in copy) delete copy[id]
-      })
-      return copy
+    // Move all expert questions back to the Database Questions list and clear expert area
+    // Preserve any edits made to expert questions by using the expertQuestions state
+    setDbQuestions(prev => {
+      // avoid duplicates by filtering out any DB items that have same id as expert ones
+      const expertIds = new Set(expertQuestions.map(q => q.id))
+      const filteredPrev = prev.filter(p => !expertIds.has(p.id))
+      return [...expertQuestions, ...filteredPrev]
     })
 
-    setExpertSelected(prev => {
-      const copy = { ...prev }
-      selectedExpertIds.forEach(id => {
-        if (id in copy) delete copy[id]
-      })
-      return copy
-    })
+    // Clear expert questions and selection state
+    setExpertQuestions([])
+    setExpertSelected({})
   }
 
   // delete saved question set
@@ -183,15 +199,32 @@ export default function ManageQuestionsPage() {
   }
 
   // Expert question actions
+  const [pendingMoveId, setPendingMoveId] = useState<string | null>(null)
+
+  // perform the actual move from Expert back to DB
   const deleteExpertQuestion = (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this question?")) return
+    // find question in expert list
+    const q = expertQuestions.find(q => q.id === id)
+    if (q) {
+      // add back to DB questions at the top
+      setDbQuestions(prev => [q, ...prev])
+    }
+
+    // remove from expert list
     setExpertQuestions(prev => prev.filter(q => q.id !== id))
+
+    // remove any expert selection state
     setExpertSelected(prev => {
       const copy = { ...prev }
       delete copy[id]
       return copy
     })
-    toast({ title: "Deleted", description: "Expert question has been deleted" })
+
+    toast({ title: "Moved", description: "Question moved back to Database Questions" })
+  }
+
+  const promptMoveBack = (id: string) => {
+    setPendingMoveId(id)
   }
 
   const startEdit = (q: Question) => {
@@ -213,13 +246,12 @@ export default function ManageQuestionsPage() {
   }
 
   // Compute selected question objects for preview
-  const selectedDbQuestions = MOCK_DB_QUESTIONS.filter(q => dbSelected[q.id])
   const selectedExpertQuestions = expertQuestions.filter(q => expertSelected[q.id])
-  const selectedQuestions = [...selectedDbQuestions, ...selectedExpertQuestions]
+  const selectedQuestions = [...selectedExpertQuestions]
 
   // helper to get question name by id
   const getQuestionById = (id: string) => {
-    return MOCK_DB_QUESTIONS.concat(expertQuestions).find(q => q.id === id)
+    return dbQuestions.concat(expertQuestions).find(q => q.id === id)
   }
 
   // helper: map intent to badge color classes
@@ -241,10 +273,10 @@ export default function ManageQuestionsPage() {
   }
 
   // compute intents for filter select
-  const allIntents = Array.from(new Set(MOCK_DB_QUESTIONS.concat(MOCK_EXPERT_QUESTIONS).map(q => q.intent))).filter(Boolean)
+  const allIntents = Array.from(new Set(dbQuestions.concat(expertQuestions).map(q => q.intent))).filter(Boolean)
 
   // filtered lists based on search and intent filter
-  const filteredDbQuestions = MOCK_DB_QUESTIONS.filter(q => {
+  const filteredDbQuestions = dbQuestions.filter(q => {
     const matchQuery = searchQuery.trim() === "" || (q.name + " " + q.filled_prompt).toLowerCase().includes(searchQuery.toLowerCase())
     const matchIntent = intentFilter === "" || q.intent === intentFilter
     return matchQuery && matchIntent
@@ -283,18 +315,20 @@ export default function ManageQuestionsPage() {
           <Card className="shadow-lg rounded-xl overflow-hidden">
             <CardHeader>
               <CardTitle>Database Questions</CardTitle>
-              <CardDescription>Mock list of all questions from the database</CardDescription>
+              <CardDescription>List of all questions from the database</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-3 max-h-[520px] overflow-y-auto">
                 {filteredDbQuestions.map((q) => (
                   <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform hover:-translate-y-0.5">
-                    <Checkbox id={`db-${q.id}`} checked={dbSelected[q.id]} onCheckedChange={(v) => toggleDb(q.id, v as boolean)} />
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1 justify-between">
                         <div className="flex items-center gap-2">
                           <Badge className={`text-xs ${intentColor(q.intent)}`}>{q.intent}</Badge>
                           <div className="font-medium">{q.name}</div>
+                        </div>
+                        <div>
+                          <Button size="sm" variant="ghost" onClick={() => moveDbToExpert(q.id)}>Add</Button>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground italic">{q.filled_prompt}</div>
@@ -314,7 +348,13 @@ export default function ManageQuestionsPage() {
             <CardContent className="p-4">
               <div className="space-y-3 max-h-[520px] overflow-y-auto">
                 {filteredExpertQuestions.map((q) => (
-                  <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform hover:-translate-y-0.5">
+                  <div
+                    key={q.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, q.id)}
+                    onDragOver={onDragOver}
+                    onDrop={(e) => onDrop(e, q.id)}
+                    className={`flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform ${draggedId === q.id ? "opacity-60" : "hover:-translate-y-0.5"}`}>
                     <Checkbox id={`exp-${q.id}`} checked={expertSelected[q.id]} onCheckedChange={(v) => toggleExpert(q.id, v as boolean)} />
 
                     <div className="flex-1">
@@ -335,28 +375,11 @@ export default function ManageQuestionsPage() {
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
 
-                              <div className="px-2 py-2">
-                                <label className="text-xs text-muted-foreground">Rating</label>
-                                <select
-                                  value={ratings[q.id] ?? ""}
-                                  onChange={(e) => handleRatingChange(q.id, e.target.value)}
-                                  className="mt-1 w-full text-sm border rounded px-2 py-1"
-                                >
-                                  <option value="">Select</option>
-                                  <option value="1">1</option>
-                                  <option value="2">2</option>
-                                  <option value="3">3</option>
-                                  <option value="4">4</option>
-                                  <option value="5">5</option>
-                                </select>
-                              </div>
-
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => startEdit(q)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => deleteExpertQuestion(q.id)} variant="destructive">
+                              <DropdownMenuItem onClick={() => promptMoveBack(q.id)} variant="destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
@@ -404,7 +427,7 @@ export default function ManageQuestionsPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">Selected total: {(Object.values(dbSelected).filter(Boolean).length) + (Object.values(expertSelected).filter(Boolean).length)} questions</div>
+              <div className="text-sm text-muted-foreground">Selected total: {(Object.values(expertSelected).filter(Boolean).length)} questions</div>
               <Button onClick={createQuestionSet} className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">Create Question Set</Button>
             </div>
           </CardContent>
@@ -437,11 +460,8 @@ export default function ManageQuestionsPage() {
                           <div className="font-medium">{q.name}</div>
                         </div>
                         <div className="text-right">
-                          {ratings[q.id] ? (
-                            <Badge className="bg-yellow-100 text-yellow-800">{ratings[q.id]} ★</Badge>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">No rating</div>
-                          )}
+                          {/* Drag handle hint */}
+                          <div className="text-xs text-muted-foreground">Drag to reorder</div>
                         </div>
                       </div>
 
@@ -504,6 +524,41 @@ export default function ManageQuestionsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Centered modal confirmation for delete/move-back */}
+        {pendingMoveId && (() => {
+          const q = expertQuestions.find(x => x.id === pendingMoveId) || dbQuestions.find(x => x.id === pendingMoveId)
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setPendingMoveId(null)} />
+
+              <div className="relative w-full max-w-lg px-4">
+                <Card className="shadow-2xl">
+                  <CardHeader>
+                    <CardTitle>Delete Question</CardTitle>
+                    <CardDescription>Are you sure you want to delete this question?</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {q ? (
+                      <div className="space-y-4">
+                        <div className="font-medium text-lg">{q.name}</div>
+                        <div className="text-sm text-muted-foreground italic line-clamp-3">{q.filled_prompt}</div>
+                        <div className="text-xs text-muted-foreground">ID: <span className="font-mono">{q.id}</span></div>
+
+                        <div className="flex items-center justify-end gap-3 pt-4">
+                          <Button variant="outline" onClick={() => setPendingMoveId(null)}>Cancel</Button>
+                          <Button className="bg-red-600" onClick={() => { if (pendingMoveId) deleteExpertQuestion(pendingMoveId); setPendingMoveId(null) }}>Delete</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>Question not found.</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
