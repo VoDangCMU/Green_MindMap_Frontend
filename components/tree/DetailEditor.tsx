@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 import { apiPost, createModel, generateKeywords } from '@/lib/auth';
 
 export default function DetailEditor() {
+  const router = useRouter();
   const {
     selectedOcean,
     selectedBehavior,
@@ -111,6 +113,9 @@ export default function DetailEditor() {
           }
         }
       );
+
+      // Redirect to question builder page
+      router.push('/dashboard/questions');
     } catch (error) {
       console.error('Error saving model:', error);
       toast.error('❌ Có lỗi xảy ra khi lưu model. Vui lòng thử lại!', {

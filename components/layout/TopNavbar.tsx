@@ -28,11 +28,6 @@ const navItems = [
     icon: TreePine,
   },
   {
-    title: "Models Verify",
-    href: "/dashboard/models-verify",
-    icon: CheckCircle,
-  },
-  {
     title: "Question Builder",
     href: "/dashboard/questions",
     icon: MessageSquare,
@@ -56,6 +51,11 @@ const navItems = [
     title: "User Management",
     href: "/dashboard/users-ocean",
     icon: Brain,
+  },
+  {
+    title: "Models Verify",
+    href: "/dashboard/models-verify",
+    icon: CheckCircle,
   },
 ]
 

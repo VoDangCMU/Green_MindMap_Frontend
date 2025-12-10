@@ -17,11 +17,6 @@ const navItems = [
 		icon: TreePine,
 	},
 	{
-		title: "Models Verify",
-		href: "/dashboard/models-verify",
-		icon: CheckCircle,
-	},
-	{
 		title: "Question Manager",
 		href: "/dashboard/questions-manage",
 		icon: FileText,
@@ -50,6 +45,11 @@ const navItems = [
 		title: "Profile",
 		href: "/dashboard/profile",
 		icon: User,
+	},
+	{
+		title: "Models Verify",
+		href: "/dashboard/models-verify",
+		icon: CheckCircle,
 	},
 ]
 

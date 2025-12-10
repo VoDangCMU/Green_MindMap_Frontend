@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +48,7 @@ interface GeneratedTemplateResponse {
 }
 
 export default function QuestionBuilderPage() {
+  const router = useRouter()
   const [models, setModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingModels, setLoadingModels] = useState(true)
@@ -235,6 +237,9 @@ export default function QuestionBuilderPage() {
       // Clear generated questions after successful save
       setGeneratedQuestions([])
       setSelectedTemplates([])
+
+      // Redirect to question management page
+      router.push('/dashboard/questions-manage')
     } catch (error) {
       toast({
         title: "Lỗi",
