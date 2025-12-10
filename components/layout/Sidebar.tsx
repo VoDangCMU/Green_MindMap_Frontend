@@ -42,14 +42,14 @@ const navItems = [
 		icon: Settings,
 	},
 	{
-		title: "Profile",
-		href: "/dashboard/profile",
-		icon: User,
-	},
-	{
 		title: "Models Verify",
 		href: "/dashboard/models-verify",
 		icon: CheckCircle,
+	},
+	{
+		title: "Profile",
+		href: "/dashboard/profile",
+		icon: User,
 	},
 ]
 

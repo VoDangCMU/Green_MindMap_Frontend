@@ -20,30 +20,28 @@ import {
     PolarRadiusAxis,
 } from "recharts"
 
-interface BigFive {
-    id: string
-    openness: number
-    conscientiousness: number
-    extraversion: number
-    agreeableness: number
-    neuroticism: number
-    createdAt: string
-    updatedAt: string
-}
-
 interface User {
     id: string
     username: string
     fullName: string
     email: string
-    phoneNumber: string | null
-    gender: string | null
+    phoneNumber?: string
+    gender?: string
     location: string
-    role: string
+    role?: string
     dateOfBirth: string
     createdAt: string
     updatedAt: string
-    bigFive: BigFive | null
+    bigFive?: {
+        id: string
+        openness: number
+        conscientiousness: number
+        extraversion: number
+        agreeableness: number
+        neuroticism: number
+        createdAt: string
+        updatedAt: string
+    } | null
 }
 
 interface UserDetailModalProps {

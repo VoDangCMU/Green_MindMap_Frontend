@@ -48,15 +48,16 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "User Management",
-    href: "/dashboard/users-ocean",
-    icon: Brain,
-  },
-  {
     title: "Models Verify",
     href: "/dashboard/models-verify",
     icon: CheckCircle,
   },
+  {
+    title: "User Management",
+    href: "/dashboard/users-ocean",
+    icon: Brain,
+  },
+
 ]
 
 export function TopNavbar() {

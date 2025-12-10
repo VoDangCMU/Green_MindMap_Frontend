@@ -20,6 +20,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, Eye } from "lucide-react"
+import { parse } from "path"
 
 interface Model {
   id: string
@@ -93,7 +94,7 @@ export function ModelsTable() {
       if (modelsData.success) {
         setModels(modelsData.data)
       }
-      
+
       if (Array.isArray(feedbacksData)) {
         setFeedbacks(feedbacksData)
       }
@@ -209,7 +210,7 @@ export function ModelsTable() {
           <DialogHeader>
             <DialogTitle>Model Feedback</DialogTitle>
           </DialogHeader>
-          
+
           {selectedModel && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
@@ -260,19 +261,23 @@ export function ModelsTable() {
                           {new Date(feedback.createdAt).toLocaleString()}
                         </p>
                       </div>
-                      
+
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-muted-foreground">Expected</p>
-                          <p className="font-medium">{(parseFloat(feedback.expected) * 100).toFixed(2)}%</p>
+                          <p className="font-medium">{(parseFloat(feedback.expected) * 100)}%</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Actual</p>
-                          <p className="font-medium">{parseFloat(feedback.actual).toFixed(2)}%</p>
+                          <p className="font-medium">{parseFloat(feedback.actual) * 100}%</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Deviation</p>
-                          <p className="font-medium text-red-500">{parseFloat(feedback.deviation).toFixed(2)}%</p>
+                          <p className="text-muted-foreground">Ennagement </p>
+                          <p className="font-medium text-red-500">{(parseFloat(feedback.deviation) * 100)}%</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Acceptance</p>
+                          <p className="font-medium">{(parseFloat(feedback.deviation) * 100)}%</p>
                         </div>
                       </div>
 

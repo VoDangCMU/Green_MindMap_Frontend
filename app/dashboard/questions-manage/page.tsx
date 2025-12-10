@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Edit, Trash2, MoreHorizontal } from "lucide-react"
+import { Edit, Trash2, MoreHorizontal, GripVertical } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -26,6 +26,7 @@ import {
   updateQuestion as apiUpdateQuestion,
   deleteQuestion as apiDeleteQuestion,
 } from "@/lib/question-set"
+import { useRouter } from "next/navigation"
 
 interface QuestionOption {
   id: string
@@ -53,6 +54,7 @@ interface Question {
 }
 
 export default function ManageQuestionsPage() {
+  const router = useRouter();
   const [dbQuestions, setDbQuestions] = useState<Question[]>([])
   const [expertSelected, setExpertSelected] = useState<Record<string, boolean>>({})
   const [name, setName] = useState("")
@@ -61,7 +63,6 @@ export default function ManageQuestionsPage() {
   const [intentFilter, setIntentFilter] = useState("")
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
-
   const [draggedId, setDraggedId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -156,6 +157,18 @@ export default function ManageQuestionsPage() {
     setExpertSelected(prev => ({ ...prev, [id]: value }))
   }
 
+  const selectAllExpert = () => {
+    const allSelected: Record<string, boolean> = {}
+    expertQuestions.forEach(q => {
+      allSelected[q.id] = true
+    })
+    setExpertSelected(allSelected)
+  }
+
+  const clearAllExpert = () => {
+    setExpertSelected({})
+  }
+
   const moveDbToExpert = (id: string) => {
     const q = dbQuestions.find(d => d.id === id)
     if (!q) return
@@ -204,6 +217,8 @@ export default function ManageQuestionsPage() {
         setExpertQuestions([])
         setExpertSelected({})
       }
+
+      router.push('/dashboard/survey')
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || "Failed to create question set"
       toast({
@@ -300,10 +315,6 @@ export default function ManageQuestionsPage() {
   const selectedExpertQuestions = expertQuestions.filter(q => expertSelected[q.id])
   const selectedQuestions = [...selectedExpertQuestions]
 
-  const getQuestionById = (id: string) => {
-    return dbQuestions.concat(expertQuestions).find(q => q.id === id)
-  }
-
   const intentColor = (intent?: string) => {
     switch (intent) {
       case "frequency":
@@ -371,7 +382,7 @@ export default function ManageQuestionsPage() {
               ) : (
                 <div className="space-y-3 max-h-[520px] overflow-y-auto">
                   {filteredDbQuestions.map((q) => (
-                    <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform hover:-translate-y-0.5">
+                    <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:border-blue-300 hover:shadow-md transition transform hover:-translate-y-0.5">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1 justify-between">
                           <div className="flex items-center gap-2">
@@ -382,7 +393,7 @@ export default function ManageQuestionsPage() {
                             <Button size="sm" variant="ghost" onClick={() => moveDbToExpert(q.id)}>Add</Button>
                           </div>
                         </div>
-                        <div className="text-sm text-muted-foreground italic">{q.template.filled_prompt}</div>
+                        <div className="text-sm text-muted-foreground italic">{q.question}</div>
                       </div>
                     </div>
                   ))}
@@ -393,8 +404,16 @@ export default function ManageQuestionsPage() {
 
           <Card className="shadow-lg rounded-xl overflow-hidden">
             <CardHeader>
-              <CardTitle>Question Management</CardTitle>
-              <CardDescription>Manage, edit, reorder and delete questions</CardDescription>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Question Management</CardTitle>
+                  <CardDescription>Manage, edit, reorder and delete questions</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={selectAllExpert}>Select All</Button>
+                  <Button size="sm" variant="outline" onClick={clearAllExpert}>Clear</Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-3 max-h-[520px] overflow-y-auto">
@@ -405,8 +424,16 @@ export default function ManageQuestionsPage() {
                     onDragStart={(e) => onDragStart(e, q.id)}
                     onDragOver={onDragOver}
                     onDrop={(e) => onDrop(e, q.id)}
-                    className={`flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform ${draggedId === q.id ? "opacity-60" : "hover:-translate-y-0.5"}`}>
-                    <Checkbox id={`exp-${q.id}`} checked={expertSelected[q.id]} onCheckedChange={(v) => toggleExpert(q.id, v as boolean)} />
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all transform ${draggedId === q.id
+                      ? "opacity-100 bg-blue-50 border-solid border-blue-500 shadow-lg scale-102"
+                      : "bg-white border-transparent hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 cursor-grab active:cursor-grabbing"
+                      }`}>
+                    <div className="flex items-center gap-2">
+                      <div title="Drag to reorder">
+                        <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      </div>
+                      <Checkbox id={`exp-${q.id}`} checked={expertSelected[q.id]} onCheckedChange={(v) => toggleExpert(q.id, v as boolean)} />
+                    </div>
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 justify-between">
@@ -504,7 +531,7 @@ export default function ManageQuestionsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selectedQuestions.map((q) => (
-                    <div key={q.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition">
+                    <div key={q.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Badge className={`text-xs ${intentColor(q.template?.intent)}`}>{q.template?.intent}</Badge>

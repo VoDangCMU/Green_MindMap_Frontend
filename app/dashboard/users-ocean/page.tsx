@@ -50,6 +50,16 @@ interface User {
     age: number
     gender: string
     location: string
+    phoneNumber?: string
+    role?: string
+    dateOfBirth?: string
+    bigFive?: {
+        openness: number
+        conscientiousness: number
+        extraversion: number
+        agreeableness: number
+        neuroticism: number
+    }
     ocean?: {
         openness: number
         conscientiousness: number
