@@ -17,8 +17,24 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import {
+  getMyQuestions,
+  getMyQuestionSets,
+  createQuestionSet as apiCreateQuestionSet,
+  updateQuestionSet as apiUpdateQuestionSet,
+  deleteQuestionSet as apiDeleteQuestionSet,
+  updateQuestion as apiUpdateQuestion,
+  deleteQuestion as apiDeleteQuestion,
+} from "@/lib/question-set"
 
-interface Question {
+interface QuestionOption {
+  id: string
+  text: string
+  value: string
+  order: number
+}
+
+interface Template {
   id: string
   name: string
   intent: string
@@ -26,48 +42,68 @@ interface Question {
   question_type: string
 }
 
-const MOCK_DB_QUESTIONS: Question[] = [
-  {
-    id: "T_FREQ_01",
-    name: "Tần suất thực hiện hành động 1",
-    intent: "frequency",
-    filled_prompt: `Người có tính cách O, giới tính Nam, độ tuổi 18, mức độ yêu thích hành động khám phá quán cafe Đà Nẵng mới là như thế nào?\nLoại câu trả lời: frequency\n1: Không bao giờ\n2: Thỉnh thoảng\n3: Thường xuyên\n4: Rất thường xuyên`,
-    question_type: "frequency",
-  },
-  {
-    id: "T_FREQ_02",
-    name: "Tần suất thực hiện hành động 2",
-    intent: "frequency",
-    filled_prompt: `Người có tính cách O, thường thực hiện hành động khám phá quán cafe Đà Nẵng mới với tần suất nào?\nLoại câu trả lời: frequency\n1: Không bao giờ\n2: Thỉnh thoảng\n3: Thường xuyên\n4: Rất thường xuyên`,
-    question_type: "frequency",
-  },
-  {
-    id: "T_YN_01",
-    name: "Thói quen hành động 1",
-    intent: "yesno",
-    filled_prompt: `Người có tính cách O, giới tính Nam, độ tuổi 18, có thực hiện khám phá quán cafe Đà Nẵng mới không?\nLoại câu trả lời: yesno\nCó\nKhông`,
-    question_type: "yesno",
-  },
-]
+interface Question {
+  id: string
+  question: string
+  templateId: string
+  behaviorInput: string
+  trait: string
+  template: Template
+  questionOptions: QuestionOption[]
+}
 
 export default function ManageQuestionsPage() {
-  // DB questions are editable: start from mock DB. Expert list starts empty.
-  const [dbQuestions, setDbQuestions] = useState<Question[]>(MOCK_DB_QUESTIONS)
+  const [dbQuestions, setDbQuestions] = useState<Question[]>([])
   const [expertSelected, setExpertSelected] = useState<Record<string, boolean>>({})
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  // UI polish: search and filter for enterprise UX
   const [searchQuery, setSearchQuery] = useState("")
   const [intentFilter, setIntentFilter] = useState("")
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
-  // drag-and-drop ordering state for Expert Questions
   const [draggedId, setDraggedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchMyQuestions()
+    fetchMyQuestionSets()
+  }, [])
+
+  const fetchMyQuestions = async () => {
+    try {
+      setLoading(true)
+      const response = await getMyQuestions()
+
+      if (response.data && Array.isArray(response.data)) {
+        setDbQuestions(response.data)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load questions from database",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchMyQuestionSets = async () => {
+    try {
+      const response = await getMyQuestionSets()
+
+      if (response.data && Array.isArray(response.data)) {
+        setQuestionSets(response.data)
+      }
+    } catch (error) {
+      console.error("Failed to load question sets:", error)
+    }
+  }
 
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     setDraggedId(id)
     e.dataTransfer.effectAllowed = "move"
-    try { e.dataTransfer.setData("text/plain", id) } catch (err) { /* some browsers require try/catch */ }
+    try { e.dataTransfer.setData("text/plain", id) } catch (err) { }
   }
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -96,58 +132,40 @@ export default function ManageQuestionsPage() {
     setDraggedId(null)
   }
 
-  // New state: questions-manage expert questions list so we can edit/delete/reorder
   const [expertQuestions, setExpertQuestions] = useState<Question[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState<Partial<Question>>({})
+  const [pendingMoveId, setPendingMoveId] = useState<string | null>(null)
+  const [pendingDeleteSetId, setPendingDeleteSetId] = useState<string | null>(null)
+  const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<string | null>(null)
 
-  // New state: saved question sets created from selections
-  const [questionSets, setQuestionSets] = useState<{
+  interface QuestionSet {
     id: string
     name: string
     description: string
-    questionIds: string[]
-  }[]>([])
+    ownerId: string
+    createdAt: string
+    updatedAt: string
+    items?: Question[]
+    questionIds?: string[]
+  }
 
-  // Load saved question sets from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("questionSets")
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) setQuestionSets(parsed)
-      }
-    } catch (e) {
-      console.warn("Failed to load saved question sets from localStorage", e)
-    }
-  }, [])
-
-  // Persist questionSets to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem("questionSets", JSON.stringify(questionSets))
-    } catch (e) {
-      console.warn("Failed to save question sets to localStorage", e)
-    }
-  }, [questionSets])
+  const [questionSets, setQuestionSets] = useState<QuestionSet[]>([])
 
   const toggleExpert = (id: string, value: boolean) => {
     setExpertSelected(prev => ({ ...prev, [id]: value }))
   }
 
-  // Move a DB question into Expert questions for editing/rating
   const moveDbToExpert = (id: string) => {
     const q = dbQuestions.find(d => d.id === id)
     if (!q) return
     setExpertQuestions(prev => [q, ...prev])
     setDbQuestions(prev => prev.filter(d => d.id !== id))
-    // remove any lingering selection state
     setExpertSelected(prev => ({ ...prev }))
     toast({ title: "Moved", description: `Question moved to Expert list` })
   }
 
-  const createQuestionSet = () => {
-    // After DB questions are moved to Expert list, only Expert-side selections apply
+  const createQuestionSet = async () => {
     const selectedExpertIds = Object.entries(expertSelected).filter(([_, v]) => v).map(([k]) => k)
     const questionIds = [...selectedExpertIds]
 
@@ -161,59 +179,65 @@ export default function ManageQuestionsPage() {
       return
     }
 
-    const newSet = {
-      id: `${Date.now()}`,
-      name: name.trim(),
-      description: description.trim(),
-      questionIds,
+    try {
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        questionIds,
+      }
+
+      const response = await apiCreateQuestionSet(payload)
+
+      if (response.data) {
+        setQuestionSets(prev => [response.data, ...prev])
+        toast({ title: "Success", description: `Question set "${payload.name}" created (${questionIds.length} questions)` })
+
+        setName("")
+        setDescription("")
+
+        setDbQuestions(prev => {
+          const expertIds = new Set(expertQuestions.map(q => q.id))
+          const filteredPrev = prev.filter(p => !expertIds.has(p.id))
+          return [...expertQuestions, ...filteredPrev]
+        })
+
+        setExpertQuestions([])
+        setExpertSelected({})
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create question set"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      })
+      console.error("Create question set error:", error.response?.data || error)
     }
-
-    // Save the set locally (replace with API call if needed)
-    setQuestionSets(prev => [newSet, ...prev])
-
-    toast({ title: "Success", description: `Question set "${newSet.name}" created (${questionIds.length} questions)` })
-
-    // Reset form
-    setName("")
-    setDescription("")
-
-    // Move all expert questions back to the Database Questions list and clear expert area
-    // Preserve any edits made to expert questions by using the expertQuestions state
-    setDbQuestions(prev => {
-      // avoid duplicates by filtering out any DB items that have same id as expert ones
-      const expertIds = new Set(expertQuestions.map(q => q.id))
-      const filteredPrev = prev.filter(p => !expertIds.has(p.id))
-      return [...expertQuestions, ...filteredPrev]
-    })
-
-    // Clear expert questions and selection state
-    setExpertQuestions([])
-    setExpertSelected({})
   }
 
-  // delete saved question set
-  const deleteQuestionSet = (id: string) => {
-    if (!window.confirm("Delete this question set?")) return
-    setQuestionSets(prev => prev.filter(s => s.id !== id))
-    toast({ title: "Deleted", description: "Question set removed" })
+  const handleDeleteQuestionSet = async (id: string) => {
+    try {
+      await apiDeleteQuestionSet(id)
+      setQuestionSets(prev => prev.filter(s => s.id !== id))
+      setPendingDeleteSetId(null)
+      toast({ title: "Deleted", description: "Question set removed" })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete question set",
+        variant: "destructive"
+      })
+    }
   }
 
-  // Expert question actions
-  const [pendingMoveId, setPendingMoveId] = useState<string | null>(null)
-
-  // perform the actual move from Expert back to DB
   const deleteExpertQuestion = (id: string) => {
-    // find question in expert list
     const q = expertQuestions.find(q => q.id === id)
     if (q) {
-      // add back to DB questions at the top
       setDbQuestions(prev => [q, ...prev])
     }
 
-    // remove from expert list
     setExpertQuestions(prev => prev.filter(q => q.id !== id))
 
-    // remove any expert selection state
     setExpertSelected(prev => {
       const copy = { ...prev }
       delete copy[id]
@@ -224,7 +248,25 @@ export default function ManageQuestionsPage() {
   }
 
   const promptMoveBack = (id: string) => {
-    setPendingMoveId(id)
+    setPendingDeleteQuestionId(id)
+  }
+
+  const confirmDeleteQuestion = async () => {
+    if (!pendingDeleteQuestionId) return
+
+    try {
+      await apiDeleteQuestion(pendingDeleteQuestionId)
+      setExpertQuestions(prev => prev.filter(q => q.id !== pendingDeleteQuestionId))
+      toast({ title: "Deleted", description: "Question has been deleted successfully" })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete question",
+        variant: "destructive",
+      })
+    } finally {
+      setPendingDeleteQuestionId(null)
+    }
   }
 
   const startEdit = (q: Question) => {
@@ -237,24 +279,31 @@ export default function ManageQuestionsPage() {
     setEditingData({})
   }
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editingId) return
-    setExpertQuestions(prev => prev.map(q => (q.id === editingId ? { ...(q as Question), ...(editingData as Question) } : q)))
-    setEditingId(null)
-    setEditingData({})
-    toast({ title: "Saved", description: "Expert question has been updated" })
+
+    try {
+      await apiUpdateQuestion(editingId, { question: editingData.question || "" })
+      setExpertQuestions(prev => prev.map(q => (q.id === editingId ? { ...(q as Question), ...(editingData as Question) } : q)))
+      setEditingId(null)
+      setEditingData({})
+      toast({ title: "Saved", description: "Question has been updated successfully" })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update question",
+        variant: "destructive",
+      })
+    }
   }
 
-  // Compute selected question objects for preview
   const selectedExpertQuestions = expertQuestions.filter(q => expertSelected[q.id])
   const selectedQuestions = [...selectedExpertQuestions]
 
-  // helper to get question name by id
   const getQuestionById = (id: string) => {
     return dbQuestions.concat(expertQuestions).find(q => q.id === id)
   }
 
-  // helper: map intent to badge color classes
   const intentColor = (intent?: string) => {
     switch (intent) {
       case "frequency":
@@ -272,19 +321,17 @@ export default function ManageQuestionsPage() {
     }
   }
 
-  // compute intents for filter select
-  const allIntents = Array.from(new Set(dbQuestions.concat(expertQuestions).map(q => q.intent))).filter(Boolean)
+  const allIntents = Array.from(new Set(dbQuestions.concat(expertQuestions).map(q => q.template?.intent).filter(Boolean))).filter(Boolean)
 
-  // filtered lists based on search and intent filter
   const filteredDbQuestions = dbQuestions.filter(q => {
-    const matchQuery = searchQuery.trim() === "" || (q.name + " " + q.filled_prompt).toLowerCase().includes(searchQuery.toLowerCase())
-    const matchIntent = intentFilter === "" || q.intent === intentFilter
+    const matchQuery = searchQuery.trim() === "" || (q.template?.name + " " + q.question).toLowerCase().includes(searchQuery.toLowerCase())
+    const matchIntent = intentFilter === "" || q.template?.intent === intentFilter
     return matchQuery && matchIntent
   })
 
   const filteredExpertQuestions = expertQuestions.filter(q => {
-    const matchQuery = searchQuery.trim() === "" || (q.name + " " + q.filled_prompt).toLowerCase().includes(searchQuery.toLowerCase())
-    const matchIntent = intentFilter === "" || q.intent === intentFilter
+    const matchQuery = searchQuery.trim() === "" || (q.template?.name + " " + q.question).toLowerCase().includes(searchQuery.toLowerCase())
+    const matchIntent = intentFilter === "" || q.template?.intent === intentFilter
     return matchQuery && matchIntent
   })
 
@@ -305,7 +352,6 @@ export default function ManageQuestionsPage() {
               </select>
             </div>
           </div>
-          {/* mobile search */}
           <div className="md:hidden">
             <Input placeholder="Search questions..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
@@ -314,36 +360,41 @@ export default function ManageQuestionsPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="shadow-lg rounded-xl overflow-hidden">
             <CardHeader>
-              <CardTitle>Database Questions</CardTitle>
-              <CardDescription>List of all questions from the database</CardDescription>
+              <CardTitle>Expert Questions</CardTitle>
+              <CardDescription>Questions from the database</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="space-y-3 max-h-[520px] overflow-y-auto">
-                {filteredDbQuestions.map((q) => (
-                  <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform hover:-translate-y-0.5">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1 justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge className={`text-xs ${intentColor(q.intent)}`}>{q.intent}</Badge>
-                          <div className="font-medium">{q.name}</div>
+              {loading ? (
+                <div className="flex items-center justify-center h-[520px]">
+                  <div className="text-sm text-muted-foreground">Loading questions...</div>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[520px] overflow-y-auto">
+                  {filteredDbQuestions.map((q) => (
+                    <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-white hover:shadow-md transition transform hover:-translate-y-0.5">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1 justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`text-xs ${intentColor(q.template?.intent)}`}>{q.template?.intent}</Badge>
+                            <div className="font-medium">{q.template?.name}</div>
+                          </div>
+                          <div>
+                            <Button size="sm" variant="ghost" onClick={() => moveDbToExpert(q.id)}>Add</Button>
+                          </div>
                         </div>
-                        <div>
-                          <Button size="sm" variant="ghost" onClick={() => moveDbToExpert(q.id)}>Add</Button>
-                        </div>
+                        <div className="text-sm text-muted-foreground italic">{q.template.filled_prompt}</div>
                       </div>
-                      <div className="text-sm text-muted-foreground italic">{q.filled_prompt}</div>
-                      <div className="text-xs text-muted-foreground mt-2">ID: {q.id}</div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="shadow-lg rounded-xl overflow-hidden">
             <CardHeader>
-              <CardTitle>Expert Questions</CardTitle>
-              <CardDescription>Questions generated by experts</CardDescription>
+              <CardTitle>Question Management</CardTitle>
+              <CardDescription>Manage, edit, reorder and delete questions</CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-3 max-h-[520px] overflow-y-auto">
@@ -360,8 +411,8 @@ export default function ManageQuestionsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 justify-between">
                         <div className="flex items-center gap-2">
-                          <Badge className={`text-xs ${intentColor(q.intent)}`}>{q.intent}</Badge>
-                          <div className="font-medium">{q.name}</div>
+                          <Badge className={`text-xs ${intentColor(q.template?.intent)}`}>{q.template?.intent}</Badge>
+                          <div className="font-medium">{q.template?.name}</div>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -390,11 +441,11 @@ export default function ManageQuestionsPage() {
 
                       {editingId === q.id ? (
                         <div className="space-y-2">
-                          <Input value={editingData.name || ""} onChange={(e) => setEditingData(prev => ({ ...prev, name: e.target.value }))} />
-                          <Textarea value={editingData.filled_prompt || ""} onChange={(e) => setEditingData(prev => ({ ...prev, filled_prompt: e.target.value }))} />
+                          <Input value={editingData.template?.name || ""} onChange={(e) => setEditingData(prev => ({ ...prev, template: { ...prev.template!, name: e.target.value } }))} placeholder="Template name" />
+                          <Textarea value={editingData.question || ""} onChange={(e) => setEditingData(prev => ({ ...prev, question: e.target.value }))} placeholder="Question" />
                           <div className="flex items-center gap-2">
-                            <Input value={editingData.intent || ""} onChange={(e) => setEditingData(prev => ({ ...prev, intent: e.target.value }))} placeholder="intent" />
-                            <Input value={editingData.question_type || ""} onChange={(e) => setEditingData(prev => ({ ...prev, question_type: e.target.value }))} placeholder="type" />
+                            <Input value={editingData.template?.intent || ""} onChange={(e) => setEditingData(prev => ({ ...prev, template: { ...prev.template!, intent: e.target.value } }))} placeholder="intent" />
+                            <Input value={editingData.trait || ""} onChange={(e) => setEditingData(prev => ({ ...prev, trait: e.target.value }))} placeholder="trait" />
                           </div>
                           <div className="flex gap-2 pt-2">
                             <Button size="sm" onClick={saveEdit} className="bg-green-600">Save</Button>
@@ -403,7 +454,7 @@ export default function ManageQuestionsPage() {
                         </div>
                       ) : (
                         <>
-                          <div className="text-sm text-muted-foreground italic">{q.filled_prompt}</div>
+                          <div className="text-sm text-muted-foreground italic">{q.question}</div>
                           <div className="text-xs text-muted-foreground mt-2">ID: {q.id}</div>
                         </>
                       )}
@@ -456,20 +507,19 @@ export default function ManageQuestionsPage() {
                     <div key={q.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <Badge className={`text-xs ${intentColor(q.intent)}`}>{q.intent}</Badge>
-                          <div className="font-medium">{q.name}</div>
+                          <Badge className={`text-xs ${intentColor(q.template?.intent)}`}>{q.template?.intent}</Badge>
+                          <div className="font-medium">{q.template?.name}</div>
                         </div>
                         <div className="text-right">
-                          {/* Drag handle hint */}
                           <div className="text-xs text-muted-foreground">Drag to reorder</div>
                         </div>
                       </div>
 
-                      <div className="mt-2 text-sm text-muted-foreground line-clamp-3">{q.filled_prompt}</div>
+                      <div className="mt-2 text-sm text-muted-foreground line-clamp-3">{q.question}</div>
                       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                        <div>ID: <span className="font-mono text-[11px]">{q.id.slice(0,8)}…</span></div>
+                        <div>ID: <span className="font-mono text-[11px]">{q.id.slice(0, 8)}…</span></div>
                         <div className="flex items-center gap-2">
-                          <div className="text-xs text-muted-foreground">Type: <span className="font-medium">{q.question_type}</span></div>
+                          <div className="text-xs text-muted-foreground">Trait: <span className="font-medium">{q.trait}</span></div>
                         </div>
                       </div>
                     </div>
@@ -480,7 +530,6 @@ export default function ManageQuestionsPage() {
           </CardContent>
         </Card>
 
-        {/* New: Saved Question Sets list (bottom box) */}
         <Card className="mt-4">
           <CardHeader>
             <CardTitle>Saved Question Sets</CardTitle>
@@ -499,24 +548,26 @@ export default function ManageQuestionsPage() {
                         <div className="text-xs text-muted-foreground">{set.description || <span className="italic text-muted-foreground">No description</span>}</div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <div className="text-xs text-muted-foreground">{set.questionIds.length} questions</div>
+                        <div className="text-xs text-muted-foreground">{set.items?.length || set.questionIds?.length || 0} questions</div>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(set.id)}>Copy ID</Button>
-                          <Button size="sm" variant="destructive" onClick={() => deleteQuestionSet(set.id)}>Delete</Button>
+                          <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(set.id)}>
+                            Copy ID
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => setPendingDeleteSetId(set.id)}>
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {set.questionIds.map((qid) => {
-                        const q = getQuestionById(qid)
-                        return (
-                          <div key={qid} className="px-3 py-1 rounded-full bg-gray-100 text-sm flex items-center gap-2">
-                            <Badge className="bg-gray-200 text-xs">{q?.intent ?? "-"}</Badge>
-                            <div className="truncate max-w-[160px]">{q?.name ?? qid}</div>
-                          </div>
-                        )
-                      })}
+                      {set.items?.map((question) => (
+                        <div key={question.id} className="px-3 py-1 rounded-full bg-gray-100 text-sm flex items-center gap-2">
+                          <Badge className={`text-xs ${intentColor(question.template?.intent)}`}>{question.template?.intent ?? "-"}</Badge>
+                          <div className="truncate max-w-[160px]">{question.question}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -525,7 +576,6 @@ export default function ManageQuestionsPage() {
           </CardContent>
         </Card>
 
-        {/* Centered modal confirmation for delete/move-back */}
         {pendingMoveId && (() => {
           const q = expertQuestions.find(x => x.id === pendingMoveId) || dbQuestions.find(x => x.id === pendingMoveId)
           return (
@@ -541,13 +591,165 @@ export default function ManageQuestionsPage() {
                   <CardContent>
                     {q ? (
                       <div className="space-y-4">
-                        <div className="font-medium text-lg">{q.name}</div>
-                        <div className="text-sm text-muted-foreground italic line-clamp-3">{q.filled_prompt}</div>
+                        <div className="font-medium text-lg">{q.template?.name}</div>
+                        <div className="text-sm text-muted-foreground italic line-clamp-3">{q.question}</div>
                         <div className="text-xs text-muted-foreground">ID: <span className="font-mono">{q.id}</span></div>
 
+                        <div className="flex items-center justify-end gap-3 pt-6 border-t mt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setPendingMoveId(null)}
+                            className="min-w-24"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => { if (pendingMoveId) deleteExpertQuestion(pendingMoveId); setPendingMoveId(null) }}
+                            className="min-w-24"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>Question not found.</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )
+        })()}
+
+        {pendingDeleteSetId && (() => {
+          const set = questionSets.find(s => s.id === pendingDeleteSetId)
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setPendingDeleteSetId(null)} />
+
+              <div className="relative w-full max-w-lg px-4">
+                <Card className="shadow-2xl">
+                  <CardHeader className="bg-red-50 border-b">
+                    <CardTitle className="text-red-900 flex items-center gap-2">
+                      <Trash2 className="w-5 h-5" />
+                      Delete Question Set
+                    </CardTitle>
+                    <CardDescription className="text-red-700">
+                      This action cannot be undone. All questions in this set will be permanently removed.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {set ? (
+                      <div className="space-y-4">
+                        <div className="bg-gray-50 rounded-lg p-4 border space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Questions to be deleted:</span>
+                            <Badge variant="outline" className="shrink-0">
+                              {set.items?.length || 0} questions
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {set.items?.map((question, index) => (
+                              <div key={question.id} className="bg-white rounded-md p-3 border border-gray-200">
+                                <div className="flex items-start gap-3">
+                                  <span className="text-xs font-medium text-gray-500 mt-0.5">#{index + 1}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-900 line-clamp-2">{question.question}</p>
+                                    <div className="flex gap-2 mt-2">
+                                      <Badge className={`text-xs ${intentColor(question.template?.intent)}`}>
+                                        {question.template?.intent}
+                                      </Badge>
+                                      <Badge className="text-xs bg-purple-100 text-purple-800">
+                                        {question.trait}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
                         <div className="flex items-center justify-end gap-3 pt-4">
-                          <Button variant="outline" onClick={() => setPendingMoveId(null)}>Cancel</Button>
-                          <Button className="bg-red-600" onClick={() => { if (pendingMoveId) deleteExpertQuestion(pendingMoveId); setPendingMoveId(null) }}>Delete</Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setPendingDeleteSetId(null)}
+                            className="min-w-28"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => { if (pendingDeleteSetId) handleDeleteQuestionSet(pendingDeleteSetId) }}
+                            className="min-w-28"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Set
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>Question set not found.</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )
+        })()}
+
+        {pendingDeleteQuestionId && (() => {
+          const question = expertQuestions.find(q => q.id === pendingDeleteQuestionId)
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setPendingDeleteQuestionId(null)} />
+
+              <div className="relative w-full max-w-lg px-4">
+                <Card className="shadow-2xl">
+                  <CardHeader className="bg-red-50 border-b">
+                    <CardTitle className="text-red-900 flex items-center gap-2">
+                      <Trash2 className="w-5 h-5" />
+                      Delete Question
+                    </CardTitle>
+                    <CardDescription className="text-red-700">
+                      This action cannot be undone. The question will be permanently deleted.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {question ? (
+                      <div className="space-y-4">
+                        <div className="bg-gray-50 rounded-lg p-4 border space-y-2">
+                          <div className="text-sm font-medium text-gray-700">Question to be deleted:</div>
+                          <p className="text-sm text-gray-900 line-clamp-3">{question.question}</p>
+                          <div className="flex gap-2 mt-2">
+                            <Badge className={`text-xs ${intentColor(question.template?.intent)}`}>
+                              {question.template?.intent}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {question.template?.name}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setPendingDeleteQuestionId(null)}
+                            className="min-w-28"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={confirmDeleteQuestion}
+                            className="min-w-28"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     ) : (

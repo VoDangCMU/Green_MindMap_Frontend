@@ -414,4 +414,5 @@ export const combineQuestion = async (questionData: any) => {
 export const getUsers = async () => {
   return apiGet('/auth/get-alls');
 }
+
 export { apiClient, aiApiClient };

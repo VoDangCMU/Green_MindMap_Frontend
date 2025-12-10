@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useScenarioStore } from "@/store/useScenarioStore"
 import { useToast } from "@/hooks/use-toast"
 import { Plus } from "lucide-react"
 import { createSurveyScenario } from "@/lib/survey"
-import { apiGet, getUsers } from "@/lib/auth"
+import { getUsers } from "@/lib/auth"
 
 interface User {
   id: string
@@ -31,7 +30,6 @@ interface SurveyFormProps {
 }
 
 export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
-  const { generateScenario } = useScenarioStore()
   const { toast } = useToast()
 
   const [minAge, setMinAge] = useState("")

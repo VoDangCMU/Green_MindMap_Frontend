@@ -32,8 +32,8 @@ export const createSurveyScenario = async (scenarioData: any) => {
     return apiPost('/scenarios-survey/create-survey-scenario', scenarioData)
 }
 
-export const attachQuestions = async (scenarioId: string, questionIds: string[]) => {
-    return apiPut(`/scenarios-survey/attach-question/${scenarioId}`, { questionIds })
+export const attachQuestionSet = async (scenarioId: string, questionSetId: string) => {
+    return apiPut(`/scenarios-survey/attach-question/${scenarioId}`, { questionSetId })
 }
 
 

@@ -24,7 +24,13 @@ interface ScenarioFromAPI {
   status: "draft" | "sent"
   location?: string
   address?: string
-  questions: Array<{
+  questionSetId?: string
+  questionSet?: {
+    id: string
+    name: string
+    description?: string
+  }
+  questions?: Array<{
     id: string
     question: string
   }>
@@ -66,10 +72,10 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
   const handleSimulate = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId)
 
-    if (!scenario?.questions || scenario.questions.length === 0) {
+    if (!scenario?.questionSet?.id) {
       toast({
-        title: "No Questions Selected",
-        description: "Please select at least one question before simulating.",
+        title: "No Question Set Selected",
+        description: "Please select a question set before simulating.",
         variant: "destructive",
       })
       return
@@ -174,6 +180,14 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
     setModalOpen(true)
   }
 
+  const handleModalOpenChange = (open: boolean) => {
+    setModalOpen(open)
+    if (!open) {
+      // Refresh scenarios when modal closes (after set is attached)
+      fetchScenarios()
+    }
+  }
+
   const handleExport = () => {
     const dataStr = JSON.stringify(scenarios, null, 2)
     const dataBlob = new Blob([dataStr], { type: "application/json" })
@@ -254,8 +268,8 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                           {scenario.percentage}%
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="font-medium">
-                            {scenario.questions.length} selected
+                          <Badge variant="outline" className="font-medium max-w-xs truncate">
+                            {scenario.questionSet?.name || "No Set"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -302,7 +316,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                                       <ListChecks className="mr-2 h-4 w-4" />
                                       Select Set Questions
                                     </Button>
-                                    {(!scenario.questions || scenario.questions.length === 0) ? (
+                                    {(!scenario.questionSet?.id) ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Button size="sm" disabled className="shadow-sm">
@@ -356,9 +370,8 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
       {currentScenario && (
         <QuestionModal
           open={modalOpen}
-          onOpenChange={setModalOpen}
+          onOpenChange={handleModalOpenChange}
           scenarioId={selectedScenarioId}
-          selectedQuestions={currentScenario.questions}
           onSuccess={fetchScenarios}
         />
       )}
