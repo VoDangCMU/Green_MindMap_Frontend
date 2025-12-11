@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, TreePine, FileText, Users, Settings, User, Brain, CheckCircle } from "lucide-react"
+import { LayoutDashboard, TreePine, FileText, Users, Settings, User, Brain, CheckCircle, MessageSquare } from "lucide-react"
 
 const navItems = [
 	{
@@ -37,14 +37,19 @@ const navItems = [
 		icon: Brain,
 	},
 	{
-		title: "Settings",
-		href: "/dashboard/settings",
-		icon: Settings,
-	},
-	{
 		title: "Models Verify",
 		href: "/dashboard/models-verify",
 		icon: CheckCircle,
+	},
+	{
+		title: "Daily Verify",
+		href: "/dashboard/daily-feedback",
+		icon: MessageSquare,
+	},
+	{
+		title: "Settings",
+		href: "/dashboard/settings",
+		icon: Settings,
 	},
 	{
 		title: "Profile",

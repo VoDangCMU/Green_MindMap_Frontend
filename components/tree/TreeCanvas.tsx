@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,17 @@ export default function TreeCanvas() {
   const { isOver, setNodeRef } = useDroppable({
     id: 'tree-canvas',
   });
+
+  // Lấy TẤT CẢ behaviors từ tất cả traits
+  const allBehaviors = useMemo(() => {
+    const behaviors: { ocean: string; behavior: string }[] = [];
+    Object.entries(OCEAN_DATA).forEach(([ocean, data]) => {
+      data.behaviors.forEach((behavior) => {
+        behaviors.push({ ocean, behavior });
+      });
+    });
+    return behaviors;
+  }, []);
 
   const clearSelection = () => {
     setSelectedOcean('');
@@ -95,8 +106,8 @@ export default function TreeCanvas() {
                       <SelectValue placeholder="Chọn behavior..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {OCEAN_DATA[selectedOcean as OceanKey]?.behaviors.map((behavior, index) => (
-                        <SelectItem key={index} value={behavior}>
+                      {allBehaviors.map(({ behavior }, index) => (
+                        <SelectItem key={`${selectedOcean}-${index}`} value={behavior}>
                           {behavior}
                         </SelectItem>
                       ))}

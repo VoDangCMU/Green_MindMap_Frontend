@@ -20,7 +20,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, Eye } from "lucide-react"
-import { parse } from "path"
 
 interface Model {
   id: string
@@ -34,17 +33,26 @@ interface Model {
   updatedAt: string
 }
 
+interface MechanismFeedback {
+  awareness: string
+  motivation: string
+  capability: string
+  opportunity: string
+}
+
 interface Feedback {
   id: string
   model_id: string
   user_id: string
   trait_checked: string
-  expected: string
-  actual: string
-  deviation: string
+  expected: number
+  actual: number
+  deviation: number
+  engagement: number
   match: boolean
   level: string
   feedback: string[]
+  mechanismFeedbacks: MechanismFeedback[]
   createdAt: string
   updatedAt: string
   model: Model
@@ -95,8 +103,11 @@ export function ModelsTable() {
         setModels(modelsData.data)
       }
 
+      // Handle both array response and object with data property
       if (Array.isArray(feedbacksData)) {
         setFeedbacks(feedbacksData)
+      } else if (feedbacksData.data && Array.isArray(feedbacksData.data)) {
+        setFeedbacks(feedbacksData.data)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -122,6 +133,8 @@ export function ModelsTable() {
         return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Warning</Badge>
       case "good":
         return <Badge variant="default" className="bg-green-500">Good</Badge>
+      case "high":
+        return <Badge variant="default" className="bg-blue-500">High</Badge>
       default:
         return <Badge variant="secondary">{level}</Badge>
     }
@@ -208,7 +221,7 @@ export function ModelsTable() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Model Feedback</DialogTitle>
+            <DialogTitle>Feedback</DialogTitle>
           </DialogHeader>
 
           {selectedModel && (
@@ -262,22 +275,22 @@ export function ModelsTable() {
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-4 gap-4 text-sm">
                         <div>
                           <p className="text-muted-foreground">Expected</p>
-                          <p className="font-medium">{(parseFloat(feedback.expected) * 100)}%</p>
+                          <p className="font-medium">{(feedback.expected * 100).toFixed(0)}%</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Actual</p>
-                          <p className="font-medium">{parseFloat(feedback.actual) * 100}%</p>
+                          <p className="font-medium">{(feedback.actual * 100).toFixed(0)}%</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Ennagement </p>
-                          <p className="font-medium text-red-500">{(parseFloat(feedback.deviation) * 100)}%</p>
+                          <p className="text-muted-foreground">Deviation</p>
+                          <p className="font-medium text-red-500">{(feedback.deviation * 100).toFixed(0)}%</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Acceptance</p>
-                          <p className="font-medium">{(parseFloat(feedback.deviation) * 100)}%</p>
+                          <p className="text-muted-foreground">Engagement</p>
+                          <p className="font-medium">{(feedback.engagement * 100).toFixed(0)}%</p>
                         </div>
                       </div>
 
@@ -291,6 +304,35 @@ export function ModelsTable() {
                               </li>
                             ))}
                           </ul>
+                        </div>
+                      )}
+
+                      {feedback.mechanismFeedbacks && feedback.mechanismFeedbacks.length > 0 && (
+                        <div className="space-y-3 mt-4">
+                          <p className="text-sm font-medium">Mechanism Feedbacks:</p>
+                          {feedback.mechanismFeedbacks.map((mecha, index) => (
+                            <div key={index} className="border rounded-lg p-3 bg-muted/30 space-y-2">
+                              <p className="text-xs font-semibold text-muted-foreground">Mechanism {index + 1}</p>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Awareness</p>
+                                  <p className="font-medium">{mecha.awareness}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Motivation</p>
+                                  <p className="font-medium">{mecha.motivation}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Capability</p>
+                                  <p className="font-medium">{mecha.capability}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Opportunity</p>
+                                  <p className="font-medium">{mecha.opportunity}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>

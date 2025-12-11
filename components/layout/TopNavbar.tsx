@@ -53,6 +53,11 @@ const navItems = [
     icon: CheckCircle,
   },
   {
+    title: "Daily Verify",
+    href: "/dashboard/daily-feedback",
+    icon: MessageSquare,
+  },
+  {
     title: "User Management",
     href: "/dashboard/users-ocean",
     icon: Brain,

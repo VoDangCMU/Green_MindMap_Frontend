@@ -113,10 +113,29 @@ export default function QuestionBuilderPage() {
   const saveTemplates = async () => {
     if (templates.length === 0) return
 
+    if (!selectedModel?.id) {
+      toast({
+        title: "Lỗi",
+        description: "Không có model được chọn",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setSaving(true)
 
-      const payload = { templates: templates }
+      // Thêm trait (ocean) và modelId vào mỗi template
+      const templatesWithTraitAndModel = templates.map(template => ({
+        ...template,
+        trait: selectedModel.ocean,
+        modelId: selectedModel.id
+      }))
+
+      const payload = {
+        templates: templatesWithTraitAndModel,
+        defaultModelId: selectedModel.id
+      }
 
       const data = await createTemplates(payload)
 
