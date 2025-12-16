@@ -263,7 +263,48 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                             ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
                             : "All"}
                         </TableCell>
-                        <TableCell className="font-medium">{scenario.address || scenario.location || "N/A"}</TableCell>
+                        <TableCell>
+                          {scenario.address || scenario.location ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex flex-wrap gap-1 max-w-xs cursor-help">
+                                  {(() => {
+                                    const locations = Array.isArray(scenario.address) ? scenario.address : Array.isArray(scenario.location) ? scenario.location : [];
+                                    return (
+                                      <>
+                                        {locations.slice(0, 2).map((addr: string) => (
+                                          <Badge key={addr} variant="outline" className="text-xs font-medium">
+                                            {addr.split(",")[0]}
+                                          </Badge>
+                                        ))}
+                                        {locations.length > 2 && (
+                                          <Badge variant="secondary" className="text-xs font-medium bg-blue-100 text-blue-700">
+                                            +{locations.length - 2} more
+                                          </Badge>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg shadow-lg">
+                                <div className="space-y-2">
+                                  <div className="text-xs font-semibold text-slate-300 tracking-wide">Full Locations Selected</div>
+                                  <div className="border-t border-slate-600 pt-2 space-y-1">
+                                    {(() => {
+                                      const locations = Array.isArray(scenario.address) ? scenario.address : Array.isArray(scenario.location) ? scenario.location : [];
+                                      return locations.map((addr: string) => (
+                                        <div key={addr} className="text-xs text-slate-200 py-1">{addr}</div>
+                                      ));
+                                    })()}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground">N/A</span>
+                          )}
+                        </TableCell>
                         <TableCell className="font-semibold text-blue-600">
                           {scenario.percentage}%
                         </TableCell>
