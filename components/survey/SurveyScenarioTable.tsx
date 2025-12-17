@@ -269,7 +269,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                               <TooltipTrigger asChild>
                                 <div className="flex flex-wrap gap-1 max-w-xs cursor-help">
                                   {(() => {
-                                    const locations = Array.isArray(scenario.address) ? scenario.address : Array.isArray(scenario.location) ? scenario.location : [];
+                                    const locations = (Array.isArray(scenario.address) ? scenario.address : Array.isArray(scenario.location) ? scenario.location : []) as string[];
                                     return (
                                       <>
                                         {locations.slice(0, 2).map((addr: string) => (
