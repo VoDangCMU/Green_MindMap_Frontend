@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Plus } from "lucide-react"
 import { createSurveyScenario } from "@/lib/survey"
@@ -37,8 +38,9 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
   const [percentage, setPercentage] = useState("")
 
   const [locations, setLocations] = useState<string[]>([])
-  const [selectedAddress, setSelectedAddress] = useState("")
+  const [selectedAddresses, setSelectedAddresses] = useState<string[]>([])
   const [selectedGender, setSelectedGender] = useState("")
+  const [searchLocation, setSearchLocation] = useState("")
   const [loadingLocs, setLoadingLocs] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -74,10 +76,10 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
     const min = Number.parseInt(minAge, 10);
     const max = Number.parseInt(maxAge, 10);
     const pct = Number.parseInt(percentage, 10);
-    if (!selectedAddress) {
+    if (selectedAddresses.length === 0) {
       toast({
         title: "Missing Location",
-        description: "Please select a location.",
+        description: "Please select at least one location.",
         variant: "destructive",
       })
       return
@@ -117,14 +119,16 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
 
     try {
       setSubmitting(true)
-      const payload = { minAge: min, maxAge: max, address: selectedAddress, percentage: pct, gender: selectedGender || null }
+      const payload = { minAge: min, maxAge: max, address: selectedAddresses, percentage: pct, gender: selectedGender || "all" }
 
+      console.log("📤 Sending payload:", payload)
       const created = await createSurveyScenario(payload);
+      console.log("📥 Response:", created)
       toast({ title: "Scenario Created", description: "Tạo scenario thành công." })
       setMinAge("")
       setMaxAge("")
       setPercentage("")
-      setSelectedAddress("")
+      setSelectedAddresses([])
       setSelectedGender("")
 
       if (onScenarioCreated) {
@@ -178,32 +182,6 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-            <Select
-              value={selectedAddress}
-              onValueChange={setSelectedAddress}
-              disabled={loadingLocs || locations.length === 0}
-            >
-              <SelectTrigger id="location" className="h-10 w-full">
-                <SelectValue
-                  placeholder="Select location"
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.length === 0 ? (
-                  <SelectItem value="__none" disabled>No locations</SelectItem>
-                ) : (
-                  locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="gender" className="text-sm font-medium">Gender</Label>
             <Select
               value={selectedGender}
@@ -221,7 +199,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="percentage" className="text-sm font-medium">Distribution Percentage (%)</Label>
+            <Label htmlFor="percentage" className="text-sm font-medium">Distribution (%)</Label>
             <Input
               id="percentage"
               type="number"
@@ -234,6 +212,67 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
             />
           </div>
 
+          <div className="md:col-span-2 space-y-3">
+            <Label className="text-sm font-medium">Locations</Label>
+            <Input
+              type="text"
+              placeholder="Search locations..."
+              value={searchLocation}
+              onChange={(e) => setSearchLocation(e.target.value)}
+              className="h-9 text-sm"
+            />
+            <div className="border border-gray-200 rounded-lg p-4 bg-white space-y-2 max-h-56 overflow-y-auto hover:border-gray-300 transition">
+              {loadingLocs ? (
+                <div className="text-sm text-muted-foreground py-4 text-center">Loading locations...</div>
+              ) : locations.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-4 text-center">No locations available</div>
+              ) : (
+                <div className="space-y-2">
+                  {locations.filter(loc => loc.toLowerCase().includes(searchLocation.toLowerCase())).length === 0 ? (
+                    <div className="text-sm text-muted-foreground py-2 text-center">No matching locations</div>
+                  ) : (
+                    locations.filter(loc => loc.toLowerCase().includes(searchLocation.toLowerCase())).map((location) => (
+                      <div key={location} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 transition">
+                        <Checkbox
+                          id={`location-${location}`}
+                          checked={selectedAddresses.includes(location)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAddresses([...selectedAddresses, location])
+                            } else {
+                              setSelectedAddresses(selectedAddresses.filter(a => a !== location))
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`location-${location}`} className="text-sm font-normal cursor-pointer flex-1">
+                          {location}
+                        </Label>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedAddresses.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                <div className="text-xs font-semibold text-blue-900">Selected Locations ({selectedAddresses.length})</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedAddresses.map((addr) => (
+                    <div key={addr} className="bg-blue-500 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                      {addr}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAddresses(selectedAddresses.filter(a => a !== addr))}
+                        className="ml-1 hover:opacity-80"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <Button onClick={handleGenerate} className="h-11 w-full text-base font-medium shadow-sm">
