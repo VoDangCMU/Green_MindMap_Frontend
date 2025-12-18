@@ -43,8 +43,8 @@ const navItems = [
     icon: FileText,
   },
   {
-    title: "Users & Results",
-    href: "/dashboard/users",
+    title: "Survey Results",
+    href: "/dashboard/survey-results",
     icon: Users,
   },
   {
