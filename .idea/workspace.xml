@@ -6,12 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6308a736-b341-4d49-b287-8ef9473399c6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/models-verify/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/models-verify/[id]/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/questions/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/questions/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/models/ModelsTable.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/models/ModelsTable.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/survey/SurveyForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/survey/SurveyForm.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/tree/DetailEditor.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/tree/DetailEditor.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/tree/TreeCanvas.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/tree/TreeCanvas.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,6 +79,7 @@
       <workItem from="1765436549373" duration="6904000" />
       <workItem from="1766054583659" duration="5526000" />
       <workItem from="1766063029042" duration="17000" />
+      <workItem from="1766063436199" duration="1691000" />
     </task>
     <servers />
   </component>

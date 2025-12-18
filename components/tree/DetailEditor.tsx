@@ -38,9 +38,9 @@ export default function DetailEditor() {
   const [newLocation, setNewLocation] = useState('');
 
   const genderOptions = [
-    { value: 'male', label: 'Nam' },
-    { value: 'female', label: 'Nữ' },
-    { value: 'other', label: 'Khác' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'all', label: 'All' },
   ];
 
   const isFormValid = selectedOcean && selectedBehavior && context.population.gender.length > 0 && context.population.locations.length > 0;
@@ -60,24 +60,38 @@ export default function DetailEditor() {
     });
   };
 
-  const handleGenderToggle = (gender: string) => {
-    if (context.population.gender.includes(gender)) {
+  const handleGenderSelect = (gender: string) => {
+    // Single select - only one option at a time
+    if (gender === 'all') {
       setPopulation({
-        gender: context.population.gender.filter((g) => g !== gender),
+        gender: ['male', 'female'],
       });
     } else {
       setPopulation({
-        gender: [...context.population.gender, gender],
+        gender: [gender],
       });
     }
   };
 
-  // Tạo age_range từ age_from và age_to
+  // Get current selected gender option
+  const getSelectedGenderOption = () => {
+    if (context.population.gender.length === 2 &&
+        context.population.gender.includes('male') &&
+        context.population.gender.includes('female')) {
+      return 'all';
+    }
+    if (context.population.gender.length === 1) {
+      return context.population.gender[0];
+    }
+    return '';
+  };
+
+  // Create age_range from age_from and age_to
   const getAgeRange = () => `${context.population.age_from}-${context.population.age_to}`;
 
   const handleGenerateKeywords = async () => {
     if (!isFormValid) {
-      toast.error('Vui lòng điền đầy đủ thông tin OCEAN, behavior và context');
+      toast.error('Please fill in all required fields: OCEAN, behavior and context');
       return;
     }
 
@@ -99,10 +113,10 @@ export default function DetailEditor() {
       });
 
       setGeneratedKeywords(data.output.keywords);
-      toast.success('Keywords đã được tạo thành công!');
+      toast.success('Keywords generated successfully!');
     } catch (error) {
       console.error('Error generating keywords:', error);
-      toast.error('Có lỗi xảy ra khi tạo keywords');
+      toast.error('An error occurred while generating keywords');
     } finally {
       setIsGenerating(false);
     }
@@ -110,13 +124,13 @@ export default function DetailEditor() {
 
   const handleSaveModel = async () => {
     if (!isFormValid) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
+      toast.error('Please fill in all required fields');
       return;
     }
 
     const finalKeywords = selectedGeneratedKeyword || keywords;
     if (!finalKeywords.trim()) {
-      toast.error('Vui lòng nhập hoặc chọn keywords');
+      toast.error('Please enter or select keywords');
       return;
     }
 
@@ -125,7 +139,7 @@ export default function DetailEditor() {
       const payload = {
         ocean: selectedOcean,
         behavior: selectedBehavior,
-        keyword: finalKeywords, // Thêm keyword vào payload
+        keyword: finalKeywords,
         context: {
           population: {
             age_range: getAgeRange(),
@@ -153,7 +167,7 @@ export default function DetailEditor() {
       setSelectedGeneratedKeyword('');
 
       toast.success(
-        `🎉 Đã lưu thành công model!\n📊 OCEAN: ${selectedOcean}\n🎯 Behavior: ${selectedBehavior}`,
+        `🎉 Model saved successfully!\n📊 OCEAN: ${selectedOcean}\n🎯 Behavior: ${selectedBehavior}`,
         {
           duration: 5000,
           style: {
@@ -167,7 +181,7 @@ export default function DetailEditor() {
       router.push('/dashboard/questions');
     } catch (error) {
       console.error('Error saving model:', error);
-      toast.error('❌ Có lỗi xảy ra khi lưu model. Vui lòng thử lại!', {
+      toast.error('❌ An error occurred while saving the model. Please try again!', {
         duration: 4000,
         style: {
           background: '#EF4444',
@@ -202,7 +216,7 @@ export default function DetailEditor() {
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  placeholder="Từ"
+                  placeholder="From"
                   value={context.population.age_from}
                   onChange={(e) => setPopulation({ age_from: e.target.value })}
                   className="w-24"
@@ -212,47 +226,54 @@ export default function DetailEditor() {
                 <span className="text-muted-foreground">-</span>
                 <Input
                   type="number"
-                  placeholder="Đến"
+                  placeholder="To"
                   value={context.population.age_to}
                   onChange={(e) => setPopulation({ age_to: e.target.value })}
                   className="w-24"
                   min={0}
                   max={120}
                 />
-                <span className="text-sm text-muted-foreground">tuổi</span>
+                <span className="text-sm text-muted-foreground">years</span>
               </div>
             </div>
 
-            {/* Gender Multi-select */}
+            {/* Gender Single Select */}
             <div className="space-y-2">
-              <Label>Gender (có thể chọn nhiều)</Label>
+              <Label>Gender</Label>
               <div className="flex flex-wrap gap-2">
-                {genderOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                      context.population.gender.includes(option.value)
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => handleGenderToggle(option.value)}
-                  >
-                    <Checkbox
-                      checked={context.population.gender.includes(option.value)}
-                      onCheckedChange={() => handleGenderToggle(option.value)}
-                    />
-                    <span className="text-sm">{option.label}</span>
-                  </div>
-                ))}
+                {genderOptions.map((option) => {
+                  const isSelected = getSelectedGenderOption() === option.value;
+
+                  return (
+                    <div
+                      key={option.value}
+                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => handleGenderSelect(option.value)}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        isSelected ? 'border-primary-foreground' : 'border-muted-foreground'
+                      }`}>
+                        {isSelected && (
+                          <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+                        )}
+                      </div>
+                      <span className="text-sm">{option.label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Locations Multi-input */}
             <div className="space-y-2">
-              <Label>Locations (có thể nhập nhiều)</Label>
+              <Label>Locations</Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Nhập địa điểm (vd: Quang Nam)"
+                  placeholder="Enter location (e.g., Quang Nam)"
                   value={newLocation}
                   onChange={(e) => setNewLocation(e.target.value)}
                   onKeyDown={(e) => {
@@ -291,7 +312,7 @@ export default function DetailEditor() {
                 }
               />
               <Label htmlFor="urban" className="cursor-pointer">
-                Urban (Thành thị)
+                Urban
               </Label>
             </div>
           </div>
@@ -301,7 +322,7 @@ export default function DetailEditor() {
             <Label htmlFor="setting">Setting</Label>
             <Input
               id="setting"
-              placeholder="Nhập setting (vd: làm sạch nguồn nước)"
+              placeholder="Enter setting (e.g., cleaning water sources)"
               value={context.setting}
               onChange={(e) => setContext({ setting: e.target.value })}
             />
@@ -312,7 +333,7 @@ export default function DetailEditor() {
             <Label htmlFor="event">Event</Label>
             <Input
               id="event"
-              placeholder="Nhập event (vd: Ngày Chủ nhật xanh tại khu dân cư nông thôn)"
+              placeholder="Enter event (e.g., Green Sunday in rural area)"
               value={context.event}
               onChange={(e) => setContext({ event: e.target.value })}
             />
@@ -327,10 +348,10 @@ export default function DetailEditor() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="keywords">Keywords hiện tại</Label>
+            <Label htmlFor="keywords">Current Keywords</Label>
             <Textarea
               id="keywords"
-              placeholder="Nhập keywords (cách nhau bằng dấu phẩy)"
+              placeholder="Enter keywords (separated by comma)"
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
               rows={3}
@@ -345,7 +366,7 @@ export default function DetailEditor() {
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Đang tạo keywords...
+                Generating keywords...
               </>
             ) : (
               <>
@@ -358,13 +379,13 @@ export default function DetailEditor() {
           {/* Generated Keywords */}
           {generatedKeywords.length > 0 && (
             <div className="space-y-2">
-              <Label>Keywords được tạo:</Label>
+              <Label>Generated Keywords:</Label>
               <Select
                 value={selectedGeneratedKeyword}
                 onValueChange={handleKeywordSelection}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn keyword được tạo" />
+                  <SelectValue placeholder="Select a generated keyword" />
                 </SelectTrigger>
                 <SelectContent>
                   {generatedKeywords.map((keyword, index) => (
@@ -387,12 +408,12 @@ export default function DetailEditor() {
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Đang lưu model...
+                Saving model...
               </>
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                Lưu Model
+                Save Model
               </>
             )}
           </Button>
@@ -401,3 +422,4 @@ export default function DetailEditor() {
     </div>
   );
 }
+
