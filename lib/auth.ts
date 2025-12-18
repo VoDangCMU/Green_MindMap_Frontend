@@ -399,7 +399,7 @@ export const deleteTemplate = async (id: string) => {
 
 // AI API functions (using https://ai-greenmind.khoav4.com)
 export const generateKeywords = async (keywordData: any) => {
-  return aiApiPost('/gen_keyword', keywordData);
+  return aiApiPost('/gen_keyword_ver2', keywordData);
 };
 
 export const generateTemplate = async (templateData: any) => {

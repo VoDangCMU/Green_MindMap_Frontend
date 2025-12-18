@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -16,10 +17,21 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, Eye } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Eye, Plus, X } from "lucide-react"
 
 interface Model {
   id: string
@@ -31,13 +43,6 @@ interface Model {
   keywords: string
   createdAt: string
   updatedAt: string
-}
-
-interface MechanismFeedback {
-  awareness: string
-  motivation: string
-  capability: string
-  opportunity: string
 }
 
 interface Feedback {
@@ -52,19 +57,46 @@ interface Feedback {
   match: boolean
   level: string
   feedback: string[]
-  mechanismFeedbacks: MechanismFeedback[]
   createdAt: string
   updatedAt: string
-  model: Model
 }
 
 export function ModelsTable() {
+  const router = useRouter()
   const [models, setModels] = useState<Model[]>([])
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null)
-  const [modelFeedbacks, setModelFeedbacks] = useState<Feedback[]>([])
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  // Create model states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    ocean: "",
+    behavior: "",
+    ageRange: "18-30",
+    genders: [] as string[],
+    locations: [] as string[],
+    urban: false,
+    setting: "",
+    event: "",
+  })
+  const [newLocation, setNewLocation] = useState("")
+
+  const ageRangeOptions = [
+    "0-17",
+    "18-30",
+    "30-50",
+    "50-65",
+    "65+",
+  ]
+
+  const genderOptions = [
+    { value: "male", label: "Nam" },
+    { value: "female", label: "Nữ" },
+    { value: "other", label: "Khác" },
+  ]
+
+  const oceanOptions = ["O", "C", "E", "A", "N"]
 
   useEffect(() => {
     fetchData()
@@ -116,28 +148,103 @@ export function ModelsTable() {
     }
   }
 
-  const handleViewFeedback = (model: Model) => {
-    setSelectedModel(model)
-    const modelFeedbackList = feedbacks.filter(
-      (feedback) => feedback.model_id === model.id
-    )
-    setModelFeedbacks(modelFeedbackList)
-    setIsDialogOpen(true)
+  const handleCreateModel = async () => {
+    try {
+      setCreateLoading(true)
+      const token = localStorage.getItem("access_token")
+
+      if (!token) {
+        console.error("No access token found")
+        return
+      }
+
+      const payload = {
+        ocean: formData.ocean,
+        behavior: formData.behavior,
+        context: {
+          population: {
+            age_range: formData.ageRange,
+            gender: formData.genders,
+            locations: formData.locations,
+            urban: formData.urban,
+          },
+          setting: formData.setting,
+          event: formData.event,
+        },
+      }
+
+      const response = await fetch("https://green-api.khoav4.com/models/create", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setIsCreateDialogOpen(false)
+        resetForm()
+        fetchData() // Refresh the table
+      } else {
+        console.error("Error creating model:", result)
+      }
+    } catch (error) {
+      console.error("Error creating model:", error)
+    } finally {
+      setCreateLoading(false)
+    }
   }
 
-  const getLevelBadge = (level: string) => {
-    switch (level) {
-      case "critical_mismatch":
-        return <Badge variant="destructive">Critical Mismatch</Badge>
-      case "warning":
-        return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Warning</Badge>
-      case "good":
-        return <Badge variant="default" className="bg-green-500">Good</Badge>
-      case "high":
-        return <Badge variant="default" className="bg-blue-500">High</Badge>
-      default:
-        return <Badge variant="secondary">{level}</Badge>
+  const resetForm = () => {
+    setFormData({
+      ocean: "",
+      behavior: "",
+      ageRange: "18-30",
+      genders: [],
+      locations: [],
+      urban: false,
+      setting: "",
+      event: "",
+    })
+    setNewLocation("")
+  }
+
+  const handleAddLocation = () => {
+    if (newLocation.trim() && !formData.locations.includes(newLocation.trim())) {
+      setFormData({
+        ...formData,
+        locations: [...formData.locations, newLocation.trim()],
+      })
+      setNewLocation("")
     }
+  }
+
+  const handleRemoveLocation = (location: string) => {
+    setFormData({
+      ...formData,
+      locations: formData.locations.filter((l) => l !== location),
+    })
+  }
+
+  const handleGenderToggle = (gender: string) => {
+    if (formData.genders.includes(gender)) {
+      setFormData({
+        ...formData,
+        genders: formData.genders.filter((g) => g !== gender),
+      })
+    } else {
+      setFormData({
+        ...formData,
+        genders: [...formData.genders, gender],
+      })
+    }
+  }
+
+  const handleViewFeedback = (model: Model) => {
+    router.push(`/dashboard/models-verify/${model.id}`)
   }
 
   const getModelFeedbackCount = (modelId: string) => {
@@ -155,6 +262,13 @@ export function ModelsTable() {
 
   return (
     <>
+      <div className="flex justify-end mb-4">
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Model
+        </Button>
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -218,129 +332,182 @@ export function ModelsTable() {
         </Table>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      {/* Create Model Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Feedback</DialogTitle>
+            <DialogTitle>Create New Model</DialogTitle>
           </DialogHeader>
 
-          {selectedModel && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
-                <div>
-                  <p className="text-sm text-muted-foreground">OCEAN</p>
-                  <p className="font-medium">{selectedModel.ocean}</p>
+          <div className="space-y-6 py-4">
+            {/* OCEAN Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="ocean">OCEAN Trait</Label>
+              <Select
+                value={formData.ocean}
+                onValueChange={(value) => setFormData({ ...formData, ocean: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select OCEAN trait" />
+                </SelectTrigger>
+                <SelectContent>
+                  {oceanOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option} - {option === "O" ? "Openness" : option === "C" ? "Conscientiousness" : option === "E" ? "Extraversion" : option === "A" ? "Agreeableness" : "Neuroticism"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Behavior */}
+            <div className="space-y-2">
+              <Label htmlFor="behavior">Behavior</Label>
+              <Textarea
+                id="behavior"
+                placeholder="Nhập hành vi (vd: tham gia giữ gìn vệ sinh môi trường sống)"
+                value={formData.behavior}
+                onChange={(e) => setFormData({ ...formData, behavior: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            {/* Context Section */}
+            <div className="space-y-4 p-4 border rounded-lg">
+              <h3 className="font-semibold">Context</h3>
+
+              {/* Population */}
+              <div className="space-y-4 p-3 border rounded-lg bg-muted/30">
+                <h4 className="text-sm font-medium">Population</h4>
+
+                {/* Age Range */}
+                <div className="space-y-2">
+                  <Label>Age Range</Label>
+                  <Select
+                    value={formData.ageRange}
+                    onValueChange={(value) => setFormData({ ...formData, ageRange: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select age range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ageRangeOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Behavior</p>
-                  <p className="font-medium">{selectedModel.behavior}</p>
+
+                {/* Gender Multi-select */}
+                <div className="space-y-2">
+                  <Label>Gender (có thể chọn nhiều)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {genderOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
+                          formData.genders.includes(option.value)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-muted"
+                        }`}
+                        onClick={() => handleGenderToggle(option.value)}
+                      >
+                        <Checkbox
+                          checked={formData.genders.includes(option.value)}
+                          onCheckedChange={() => handleGenderToggle(option.value)}
+                        />
+                        <span className="text-sm">{option.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Age</p>
-                  <p className="font-medium">{selectedModel.age}</p>
+
+                {/* Locations Multi-input */}
+                <div className="space-y-2">
+                  <Label>Locations (có thể nhập nhiều)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nhập địa điểm (vd: Quang Nam)"
+                      value={newLocation}
+                      onChange={(e) => setNewLocation(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          handleAddLocation()
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="secondary" onClick={handleAddLocation}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {formData.locations.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.locations.map((location) => (
+                        <Badge key={location} variant="secondary" className="flex items-center gap-1">
+                          {location}
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-destructive"
+                            onClick={() => handleRemoveLocation(location)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Gender</p>
-                  <p className="font-medium">{selectedModel.gender}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-medium">{selectedModel.location}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Keywords</p>
-                  <p className="font-medium">{selectedModel.keywords}</p>
+
+                {/* Urban Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="urban"
+                    checked={formData.urban}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, urban: checked as boolean })
+                    }
+                  />
+                  <Label htmlFor="urban" className="cursor-pointer">
+                    Urban (Thành thị)
+                  </Label>
                 </div>
               </div>
 
-              {modelFeedbacks.length === 0 ? (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No feedback available for this model.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Feedback Records ({modelFeedbacks.length})</h3>
-                  {modelFeedbacks.map((feedback) => (
-                    <div key={feedback.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{feedback.trait_checked}</Badge>
-                          {getLevelBadge(feedback.level)}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(feedback.createdAt).toLocaleString()}
-                        </p>
-                      </div>
+              {/* Setting */}
+              <div className="space-y-2">
+                <Label htmlFor="setting">Setting</Label>
+                <Input
+                  id="setting"
+                  placeholder="Nhập setting (vd: làm sạch nguồn nước)"
+                  value={formData.setting}
+                  onChange={(e) => setFormData({ ...formData, setting: e.target.value })}
+                />
+              </div>
 
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Expected</p>
-                          <p className="font-medium">{(feedback.expected * 100).toFixed(0)}%</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Actual</p>
-                          <p className="font-medium">{(feedback.actual * 100).toFixed(0)}%</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Deviation</p>
-                          <p className="font-medium text-red-500">{(feedback.deviation * 100).toFixed(0)}%</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Engagement</p>
-                          <p className="font-medium">{(feedback.engagement * 100).toFixed(0)}%</p>
-                        </div>
-                      </div>
-
-                      {feedback.feedback && feedback.feedback.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium">Suggestions:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            {feedback.feedback.map((item, index) => (
-                              <li key={index} className="text-sm text-muted-foreground">
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {feedback.mechanismFeedbacks && feedback.mechanismFeedbacks.length > 0 && (
-                        <div className="space-y-3 mt-4">
-                          <p className="text-sm font-medium">Mechanism Feedbacks:</p>
-                          {feedback.mechanismFeedbacks.map((mecha, index) => (
-                            <div key={index} className="border rounded-lg p-3 bg-muted/30 space-y-2">
-                              <p className="text-xs font-semibold text-muted-foreground">Mechanism {index + 1}</p>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Awareness</p>
-                                  <p className="font-medium">{mecha.awareness}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Motivation</p>
-                                  <p className="font-medium">{mecha.motivation}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Capability</p>
-                                  <p className="font-medium">{mecha.capability}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Opportunity</p>
-                                  <p className="font-medium">{mecha.opportunity}</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Event */}
+              <div className="space-y-2">
+                <Label htmlFor="event">Event</Label>
+                <Input
+                  id="event"
+                  placeholder="Nhập event (vd: Ngày Chủ nhật xanh tại khu dân cư nông thôn)"
+                  value={formData.event}
+                  onChange={(e) => setFormData({ ...formData, event: e.target.value })}
+                />
+              </div>
             </div>
-          )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateModel}
+              disabled={createLoading || !formData.ocean || !formData.behavior}
+            >
+              {createLoading ? "Creating..." : "Create Model"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

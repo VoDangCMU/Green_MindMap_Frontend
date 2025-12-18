@@ -8,21 +8,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Sparkles, Save } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Sparkles, Save, Plus, X } from 'lucide-react';
 import { useOceanModelStore } from '@/store/useOceanModelStore';
 import { toast } from 'sonner';
-import { apiPost, createModel, generateKeywords } from '@/lib/auth';
+import { createModel, generateKeywords } from '@/lib/auth';
 
 export default function DetailEditor() {
   const router = useRouter();
   const {
     selectedOcean,
     selectedBehavior,
-    demographics,
+    context,
     keywords,
     generatedKeywords,
     isGenerating,
-    setDemographics,
+    setContext,
+    setPopulation,
     setKeywords,
     setGeneratedKeywords,
     setIsGenerating,
@@ -32,25 +35,67 @@ export default function DetailEditor() {
 
   const [selectedGeneratedKeyword, setSelectedGeneratedKeyword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [newLocation, setNewLocation] = useState('');
 
-  const isFormValid = selectedOcean && selectedBehavior && demographics.age && demographics.location && demographics.gender;
+  const genderOptions = [
+    { value: 'male', label: 'Nam' },
+    { value: 'female', label: 'Nữ' },
+    { value: 'other', label: 'Khác' },
+  ];
+
+  const isFormValid = selectedOcean && selectedBehavior && context.population.gender.length > 0 && context.population.locations.length > 0;
+
+  const handleAddLocation = () => {
+    if (newLocation.trim() && !context.population.locations.includes(newLocation.trim())) {
+      setPopulation({
+        locations: [...context.population.locations, newLocation.trim()],
+      });
+      setNewLocation('');
+    }
+  };
+
+  const handleRemoveLocation = (location: string) => {
+    setPopulation({
+      locations: context.population.locations.filter((l) => l !== location),
+    });
+  };
+
+  const handleGenderToggle = (gender: string) => {
+    if (context.population.gender.includes(gender)) {
+      setPopulation({
+        gender: context.population.gender.filter((g) => g !== gender),
+      });
+    } else {
+      setPopulation({
+        gender: [...context.population.gender, gender],
+      });
+    }
+  };
+
+  // Tạo age_range từ age_from và age_to
+  const getAgeRange = () => `${context.population.age_from}-${context.population.age_to}`;
 
   const handleGenerateKeywords = async () => {
     if (!isFormValid) {
-      toast.error('Vui lòng điền đầy đủ thông tin OCEAN, behavior và demographic');
+      toast.error('Vui lòng điền đầy đủ thông tin OCEAN, behavior và context');
       return;
     }
 
     setIsGenerating(true);
     try {
-      // Sử dụng generateKeywords function với Authorization header tự động
       const data = await generateKeywords({
         ocean: selectedOcean,
         behavior: selectedBehavior,
-        age: demographics.age,
-        location: demographics.location,
-        gender: demographics.gender,
-        keywords: keywords,
+        context: {
+          population: {
+            age_range: getAgeRange(),
+            gender: context.population.gender,
+            locations: context.population.locations,
+            urban: context.population.urban,
+          },
+          setting: context.setting,
+          event: context.event,
+        },
       });
 
       setGeneratedKeywords(data.output.keywords);
@@ -77,23 +122,28 @@ export default function DetailEditor() {
 
     setIsSaving(true);
     try {
-      // Sử dụng createModel function với Authorization header tự động
-      const response = await createModel({
+      const payload = {
         ocean: selectedOcean,
         behavior: selectedBehavior,
-        age: demographics.age,
-        location: demographics.location,
-        gender: demographics.gender,
-        keywords: finalKeywords,
-      });
+        context: {
+          population: {
+            age_range: getAgeRange(),
+            gender: context.population.gender,
+            locations: context.population.locations,
+            urban: context.population.urban,
+          },
+          setting: context.setting,
+          event: context.event,
+        },
+      };
+
+      await createModel(payload);
 
       const savedModel = {
         id: Date.now().toString(),
         ocean: selectedOcean,
         behavior: selectedBehavior,
-        age: demographics.age,
-        location: demographics.location,
-        gender: demographics.gender,
+        context: payload.context,
         keywords: finalKeywords,
       };
 
@@ -101,9 +151,8 @@ export default function DetailEditor() {
       reset();
       setSelectedGeneratedKeyword('');
 
-      // Thông báo thành công với thông tin chi tiết
       toast.success(
-        `✅ Đã lưu thành công model!\n🔹 OCEAN: ${selectedOcean}\n🔹 Behavior: ${selectedBehavior}\n🔹 Demographics: ${demographics.age} tuổi, ${demographics.gender}, ${demographics.location}`,
+        `✅ Đã lưu thành công model!\n🔹 OCEAN: ${selectedOcean}\n🔹 Behavior: ${selectedBehavior}`,
         {
           duration: 5000,
           style: {
@@ -114,7 +163,6 @@ export default function DetailEditor() {
         }
       );
 
-      // Redirect to question builder page
       router.push('/dashboard/questions');
     } catch (error) {
       console.error('Error saving model:', error);
@@ -136,49 +184,152 @@ export default function DetailEditor() {
   };
 
   return (
-    <div className="w-80 space-y-4">
-      {/* Demographics Form */}
+    <div className="w-96 space-y-4">
+      {/* Behavior Editor */}
       <Card>
         <CardHeader>
-          <CardTitle>Demographics</CardTitle>
+          <CardTitle>Behavior</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Nhập hành vi (vd: tham gia giữ gìn vệ sinh môi trường sống)"
+            value={selectedBehavior}
+            onChange={(e) => useOceanModelStore.getState().setSelectedBehavior(e.target.value)}
+            rows={3}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Context Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Context</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Population Section */}
+          <div className="space-y-4 p-3 border rounded-lg bg-muted/30">
+            <h4 className="text-sm font-medium">Population</h4>
+
+            {/* Age Range - 2 inputs */}
+            <div className="space-y-2">
+              <Label>Age Range</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Từ"
+                  value={context.population.age_from}
+                  onChange={(e) => setPopulation({ age_from: e.target.value })}
+                  className="w-24"
+                  min={0}
+                  max={120}
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="number"
+                  placeholder="Đến"
+                  value={context.population.age_to}
+                  onChange={(e) => setPopulation({ age_to: e.target.value })}
+                  className="w-24"
+                  min={0}
+                  max={120}
+                />
+                <span className="text-sm text-muted-foreground">tuổi</span>
+              </div>
+            </div>
+
+            {/* Gender Multi-select */}
+            <div className="space-y-2">
+              <Label>Gender (có thể chọn nhiều)</Label>
+              <div className="flex flex-wrap gap-2">
+                {genderOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
+                      context.population.gender.includes(option.value)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'hover:bg-muted'
+                    }`}
+                    onClick={() => handleGenderToggle(option.value)}
+                  >
+                    <Checkbox
+                      checked={context.population.gender.includes(option.value)}
+                      onCheckedChange={() => handleGenderToggle(option.value)}
+                    />
+                    <span className="text-sm">{option.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Locations Multi-input */}
+            <div className="space-y-2">
+              <Label>Locations (có thể nhập nhiều)</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nhập địa điểm (vd: Quang Nam)"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddLocation();
+                    }
+                  }}
+                />
+                <Button type="button" variant="secondary" size="icon" onClick={handleAddLocation}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {context.population.locations.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {context.population.locations.map((location) => (
+                    <Badge key={location} variant="secondary" className="flex items-center gap-1">
+                      {location}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => handleRemoveLocation(location)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Urban Checkbox */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="urban"
+                checked={context.population.urban}
+                onCheckedChange={(checked) =>
+                  setPopulation({ urban: checked as boolean })
+                }
+              />
+              <Label htmlFor="urban" className="cursor-pointer">
+                Urban (Thành thị)
+              </Label>
+            </div>
+          </div>
+
+          {/* Setting */}
           <div className="space-y-2">
-            <Label htmlFor="age">Tuổi</Label>
+            <Label htmlFor="setting">Setting</Label>
             <Input
-              id="age"
-              type="number"
-              placeholder="Nhập tuổi"
-              value={demographics.age}
-              onChange={(e) => setDemographics({ age: e.target.value })}
+              id="setting"
+              placeholder="Nhập setting (vd: làm sạch nguồn nước)"
+              value={context.setting}
+              onChange={(e) => setContext({ setting: e.target.value })}
             />
           </div>
 
+          {/* Event */}
           <div className="space-y-2">
-            <Label htmlFor="location">Địa điểm</Label>
+            <Label htmlFor="event">Event</Label>
             <Input
-              id="location"
-              placeholder="Nhập địa điểm"
-              value={demographics.location}
-              onChange={(e) => setDemographics({ location: e.target.value })}
+              id="event"
+              placeholder="Nhập event (vd: Ngày Chủ nhật xanh tại khu dân cư nông thôn)"
+              value={context.event}
+              onChange={(e) => setContext({ event: e.target.value })}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="gender">Giới tính</Label>
-            <Select
-              value={demographics.gender}
-              onValueChange={(value) => setDemographics({ gender: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Chọn giới tính" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nam">Nam</SelectItem>
-                <SelectItem value="Nữ">Nữ</SelectItem>
-                <SelectItem value="Khác">Khác</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
