@@ -51,7 +51,7 @@ export const clearAuthData = () => {
 
 // Create axios instance for authenticated requests (main API)
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://green-api.khoav4.com',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -182,7 +182,8 @@ export const aiApiPost = async (url: string, data?: any, config?: AxiosRequestCo
 // Email/Password login
 export const loginWithEmail = async (payload: EmailLoginPayload): Promise<LoginResponse> => {
   try {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login/email`, payload, {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://green-api.khoav4.com';
+    const response = await axios.post(`${baseUrl}/auth/login/email`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
