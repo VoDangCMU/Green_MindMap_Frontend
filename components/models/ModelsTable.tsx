@@ -66,6 +66,8 @@ interface Feedback {
   updatedAt: string
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+
 export function ModelsTable() {
   const router = useRouter()
   const [models, setModels] = useState<Model[]>([])
@@ -139,13 +141,13 @@ export function ModelsTable() {
       }
 
       const [modelsResponse, feedbacksResponse] = await Promise.all([
-        fetch("https://green-api.khoav4.com/models/getAll", {
+        fetch(`${API_URL}/models/getAll`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }),
-        fetch("https://green-api.khoav4.com/models/feedbacks", {
+        fetch(`${API_URL}/models/feedbacks`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -197,7 +199,7 @@ export function ModelsTable() {
         },
       }
 
-      const response = await fetch("https://green-api.khoav4.com/models/create", {
+      const response = await fetch(`${API_URL}/models/create`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

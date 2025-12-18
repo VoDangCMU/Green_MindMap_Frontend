@@ -96,20 +96,23 @@ interface ChartDataPoint {
   feedback: string[]
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+
+// Score is 0-10 scale
 const getScoreColor = (score: number): string => {
-  if (score >= 0.7) return "#22c55e" // Green
-  if (score >= 0.5) return "#eab308" // Yellow
+  if (score >= 7) return "#22c55e" // Green
+  if (score >= 5) return "#eab308" // Yellow
   return "#ef4444" // Red
 }
 
 const getRecommendation = (score: number): string => {
-  if (score >= 0.7) return "Keep Current Strategy"
-  if (score >= 0.5) return "Optimize with ML Enhancement"
+  if (score >= 7) return "Keep Current Strategy"
+  if (score >= 5) return "Optimize with ML Enhancement"
   return "Critical - Switch to Digital/Social Media Strategy"
 }
 
 const getRecommendationStatus = (score: number) => {
-  if (score >= 0.7) {
+  if (score >= 7) {
     return {
       icon: <CheckCircle className="h-4 w-4 text-green-500" />,
       text: "Keep Strategy",
@@ -117,7 +120,7 @@ const getRecommendationStatus = (score: number) => {
       className: "bg-green-500",
     }
   }
-  if (score >= 0.5) {
+  if (score >= 5) {
     return {
       icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />,
       text: "Optimize",
@@ -148,7 +151,7 @@ const CustomTooltip = ({ active, payload }: any) => {
               className="font-medium"
               style={{ color: getScoreColor(score) }}
             >
-              {(score * 10).toFixed(1)}
+              {score.toFixed(1)}
             </span>
           </p>
           <p>
@@ -181,6 +184,120 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null
 }
 
+// MOCK DATA - TODO: Remove after testing
+const MOCK_FEEDBACKS: Feedback[] = [
+  {
+    id: "mock-1",
+    model_id: "mock",
+    segment_id: "seg-1",
+    user_id: "user-1",
+    trait_checked: "A",
+    expected: 0.7,
+    actual: 0.8,
+    deviation: 0.1,
+    engagement: 0.8,
+    match: true,
+    level: "good",
+    feedback: ["User shows strong engagement", "Positive response"],
+    mechanismFeedbacks: [],
+    segment: {
+      id: "seg-1",
+      name: "26-Da Nang-Male",
+      location: "Da Nang",
+      ageRange: "26",
+      gender: "Male",
+    },
+  },
+  {
+    id: "mock-2",
+    model_id: "mock",
+    segment_id: "seg-2",
+    user_id: "user-2",
+    trait_checked: "A",
+    expected: 0.6,
+    actual: 0.9,
+    deviation: 0.3,
+    engagement: 0.9,
+    match: true,
+    level: "excellent",
+    feedback: ["Excellent engagement score"],
+    mechanismFeedbacks: [],
+    segment: {
+      id: "seg-2",
+      name: "29-Quang Nam-Female",
+      location: "Quang Nam",
+      ageRange: "29",
+      gender: "Female",
+    },
+  },
+  {
+    id: "mock-3",
+    model_id: "mock",
+    segment_id: "seg-3",
+    user_id: "user-3",
+    trait_checked: "A",
+    expected: 0.7,
+    actual: 0.5,
+    deviation: 0.2,
+    engagement: 0.5,
+    match: false,
+    level: "warning",
+    feedback: ["Moderate engagement", "Needs optimization"],
+    mechanismFeedbacks: [],
+    segment: {
+      id: "seg-3",
+      name: "20-Hue-Male",
+      location: "Hue",
+      ageRange: "20",
+      gender: "Male",
+    },
+  },
+  {
+    id: "mock-4",
+    model_id: "mock",
+    segment_id: "seg-4",
+    user_id: "user-4",
+    trait_checked: "A",
+    expected: 0.8,
+    actual: 0.2,
+    deviation: 0.6,
+    engagement: 0.2,
+    match: false,
+    level: "critical_mismatch",
+    feedback: ["Very low engagement - Critical!", "Switch to Digital Strategy"],
+    mechanismFeedbacks: [],
+    segment: {
+      id: "seg-4",
+      name: "25-Quang Nam-Male",
+      location: "Quang Nam",
+      ageRange: "25",
+      gender: "Male",
+    },
+  },
+  {
+    id: "mock-5",
+    model_id: "mock",
+    segment_id: "seg-5",
+    user_id: "user-5",
+    trait_checked: "A",
+    expected: 0.6,
+    actual: 0.65,
+    deviation: 0.05,
+    engagement: 0.65,
+    match: true,
+    level: "good",
+    feedback: ["Good engagement", "Room for improvement"],
+    mechanismFeedbacks: [],
+    segment: {
+      id: "seg-5",
+      name: "35-Da Nang-Female",
+      location: "Da Nang",
+      ageRange: "35",
+      gender: "Female",
+    },
+  },
+]
+
 export default function ModelVerifyDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -211,7 +328,7 @@ export default function ModelVerifyDetailPage() {
         return
       }
 
-      const response = await fetch(`https://green-api.khoav4.com/models/${modelId}/feedbacks`, {
+      const response = await fetch(`${API_URL}/models/${modelId}/feedbacks`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -225,7 +342,9 @@ export default function ModelVerifyDetailPage() {
       const data: ApiResponse = await response.json()
 
       setModel(data.model)
-      setFeedbacks(data.feedbacks || [])
+      // Use MOCK_FEEDBACKS if API returns empty feedbacks (for testing)
+      const apiFeedbacks = data.feedbacks || []
+      setFeedbacks(apiFeedbacks.length > 0 ? apiFeedbacks : MOCK_FEEDBACKS)
     } catch (err) {
       console.error("Error fetching data:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch data")
@@ -240,19 +359,24 @@ export default function ModelVerifyDetailPage() {
   }
 
   // Transform feedbacks to chart data
-  const chartData: ChartDataPoint[] = feedbacks.map((feedback, index) => ({
-    id: feedback.id,
-    subContext: feedback.segment?.name || `${feedback.segment?.ageRange}-${feedback.segment?.location}-${feedback.segment?.gender}`,
-    age: feedback.segment?.ageRange || "",
-    location: feedback.segment?.location || "",
-    gender: feedback.segment?.gender || "",
-    engagement: index, // Y position (categorical index)
-    engagementDisplay: 1 - feedback.engagement, // Reverse: 1 becomes 0, 0 becomes 1
-    engagementOriginal: feedback.engagement, // Keep original for display
-    level: feedback.level,
-    recommendation: getRecommendation(feedback.engagement),
-    feedback: feedback.feedback,
-  }))
+  // Check if engagement is 0-1 scale or 0-10 scale and convert accordingly
+  const chartData: ChartDataPoint[] = feedbacks.map((feedback, index) => {
+    // If engagement > 1, assume it's already 0-10 scale, otherwise convert from 0-1
+    const engagementScore = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
+    return {
+      id: feedback.id,
+      subContext: feedback.segment?.name || `${feedback.segment?.ageRange}-${feedback.segment?.location}-${feedback.segment?.gender}`,
+      age: feedback.segment?.ageRange || "",
+      location: feedback.segment?.location || "",
+      gender: feedback.segment?.gender || "",
+      engagement: index, // Y position (categorical index)
+      engagementDisplay: 10 - engagementScore, // Reverse: 10 becomes 0, 0 becomes 10
+      engagementOriginal: engagementScore, // Keep original for display (0-10 scale)
+      level: feedback.level,
+      recommendation: getRecommendation(engagementScore),
+      feedback: feedback.feedback,
+    }
+  })
 
   const getOceanFullName = (trait: string): string => {
     const names: Record<string, string> = {
@@ -373,18 +497,13 @@ export default function ModelVerifyDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Section 2: Scatter Plot Chart */}
-      {chartData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Engagement Score Analysis</CardTitle>
-            <CardDescription>
-              Horizontal dot plot showing engagement scores by sub-context.
-              <span className="text-red-500 ml-1">Red (0)</span> = Critical,
-              <span className="text-green-500 ml-1">Green (10)</span> = Best
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      {/* Section 2: Scatter Plot Chart with 2 columns (Red at 10, Blue at 0) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Engagement Score Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 60)}>
               <ScatterChart
                 margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
@@ -394,11 +513,11 @@ export default function ModelVerifyDetailPage() {
                   type="number"
                   dataKey="engagementDisplay"
                   name="Engagement Score"
-                  domain={[0, 1]}
+                  domain={[0, 10]}
                   tickCount={11}
-                  tickFormatter={(value) => `${((1 - value) * 10).toFixed(0)}`}
+                  tickFormatter={(value) => `${10 - value}`}
                   label={{
-                    value: "Engagement Score (0 → 10)",
+                    value: "Engagement Score (10 → 0)",
                     position: "bottom",
                     offset: 0,
                   }}
@@ -412,13 +531,13 @@ export default function ModelVerifyDetailPage() {
                 />
                 <Tooltip content={<CustomTooltip />} />
 
-                {/* Red bar at position 0 (display 1) */}
+                {/* Red bar at position 10 (display 0) - Critical */}
                 <ReferenceLine
-                  x={1}
+                  x={0}
                   stroke="#ef4444"
                   strokeWidth={4}
                   label={{
-                    value: "0",
+                    value: "10",
                     position: "top",
                     fill: "#ef4444",
                     fontSize: 12,
@@ -426,15 +545,15 @@ export default function ModelVerifyDetailPage() {
                   }}
                 />
 
-                {/* Green bar at position 10 (display 0) */}
+                {/* Blue bar at position 0 (display 10) - Best */}
                 <ReferenceLine
-                  x={0}
-                  stroke="#22c55e"
+                  x={10}
+                  stroke="#3b82f6"
                   strokeWidth={4}
                   label={{
-                    value: "10",
+                    value: "0",
                     position: "top",
-                    fill: "#22c55e",
+                    fill: "#3b82f6",
                     fontSize: 12,
                     fontWeight: 600,
                   }}
@@ -463,25 +582,29 @@ export default function ModelVerifyDetailPage() {
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
-
-            {/* Legend for colors */}
-            <div className="flex flex-wrap gap-4 mt-4 justify-center">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500" />
-                <span className="text-sm">Score ≥ 0.7: Keep Strategy</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-yellow-500" />
-                <span className="text-sm">Score 0.5-0.7: Optimize</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-red-500" />
-                <span className="text-sm">Score &lt; 0.5: Change Strategy</span>
-              </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+              No feedback data available for chart
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+
+          {/* Legend for colors */}
+          <div className="flex flex-wrap gap-4 mt-4 justify-center">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-green-500" />
+              <span className="text-sm">Score ≥ 7: Keep Strategy</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-yellow-500" />
+              <span className="text-sm">Score 5-7: Optimize</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-red-500" />
+              <span className="text-sm">Score &lt; 5: Change Strategy</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Section 3: Detailed Data Table */}
       <Card>
@@ -496,14 +619,11 @@ export default function ModelVerifyDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Segment</TableHead>
+                  <TableHead>Sub-context</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Gender</TableHead>
-                  <TableHead>Expected</TableHead>
-                  <TableHead>Actual</TableHead>
-                  <TableHead>Deviation</TableHead>
-                  <TableHead>Engagement</TableHead>
+                  <TableHead>Score</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>AI Recommendation</TableHead>
                   <TableHead>Actions</TableHead>
@@ -512,36 +632,29 @@ export default function ModelVerifyDetailPage() {
               <TableBody>
                 {feedbacks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       No feedbacks found
                     </TableCell>
                   </TableRow>
                 ) : (
                   feedbacks.map((feedback) => {
-                    const score = feedback.engagement
+                    const score = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
                     const status = getRecommendationStatus(score)
 
                     return (
                       <TableRow key={feedback.id}>
                         <TableCell className="font-medium">
-                          {feedback.segment?.name || "-"}
+                          {feedback.segment?.name || `${feedback.segment?.ageRange}-${feedback.segment?.location}-${feedback.segment?.gender}`}
                         </TableCell>
                         <TableCell>{feedback.segment?.ageRange || "-"}</TableCell>
                         <TableCell>{feedback.segment?.location || "-"}</TableCell>
                         <TableCell>{feedback.segment?.gender || "-"}</TableCell>
-                        <TableCell>{feedback.expected?.toFixed(2) || "-"}</TableCell>
-                        <TableCell>{feedback.actual?.toFixed(2) || "-"}</TableCell>
-                        <TableCell>
-                          <span className={feedback.deviation > 0.2 ? "text-red-500" : ""}>
-                            {feedback.deviation?.toFixed(2) || "-"}
-                          </span>
-                        </TableCell>
                         <TableCell>
                           <span
                             className="font-semibold"
                             style={{ color: getScoreColor(score) }}
                           >
-                            {(score * 10).toFixed(1)}
+                            {score.toFixed(1)}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -643,8 +756,8 @@ export default function ModelVerifyDetailPage() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Engagement</p>
-                    <p className="font-medium" style={{ color: getScoreColor(selectedFeedback.engagement) }}>
-                      {(selectedFeedback.engagement * 10).toFixed(1)}
+                    <p className="font-medium" style={{ color: getScoreColor(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10) }}>
+                      {(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10).toFixed(1)}
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -705,9 +818,9 @@ export default function ModelVerifyDetailPage() {
               <div className="border-t pt-4">
                 <h4 className="font-semibold mb-3">AI Recommendation</h4>
                 <div className="flex items-center gap-2">
-                  {getRecommendationStatus(selectedFeedback.engagement).icon}
-                  <span className="font-medium" style={{ color: getScoreColor(selectedFeedback.engagement) }}>
-                    {getRecommendation(selectedFeedback.engagement)}
+                  {getRecommendationStatus(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10).icon}
+                  <span className="font-medium" style={{ color: getScoreColor(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10) }}>
+                    {getRecommendation(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10)}
                   </span>
                 </div>
               </div>
