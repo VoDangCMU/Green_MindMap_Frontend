@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil, Check, X } from 'lucide-react';
 import { useOceanModelStore } from '@/store/useOceanModelStore';
 import { OCEAN_DATA, type OceanKey } from '@/lib/ocean-data';
 
@@ -21,6 +22,10 @@ export default function TreeCanvas() {
     id: 'tree-canvas',
   });
 
+  // State để chỉnh sửa behavior
+  const [isEditingBehavior, setIsEditingBehavior] = useState(false);
+  const [editBehaviorValue, setEditBehaviorValue] = useState('');
+
   // Lấy TẤT CẢ behaviors từ tất cả traits
   const allBehaviors = useMemo(() => {
     const behaviors: { ocean: string; behavior: string }[] = [];
@@ -35,10 +40,29 @@ export default function TreeCanvas() {
   const clearSelection = () => {
     setSelectedOcean('');
     setSelectedBehavior('');
+    setIsEditingBehavior(false);
   };
 
   const handleBehaviorChange = (behavior: string) => {
     setSelectedBehavior(behavior);
+    setEditBehaviorValue(behavior);
+  };
+
+  const handleStartEditBehavior = () => {
+    setEditBehaviorValue(selectedBehavior);
+    setIsEditingBehavior(true);
+  };
+
+  const handleConfirmEditBehavior = () => {
+    if (editBehaviorValue.trim()) {
+      setSelectedBehavior(editBehaviorValue.trim());
+    }
+    setIsEditingBehavior(false);
+  };
+
+  const handleCancelEditBehavior = () => {
+    setIsEditingBehavior(false);
+    setEditBehaviorValue(selectedBehavior);
   };
 
   return (
@@ -93,13 +117,44 @@ export default function TreeCanvas() {
                 </div>
               </div>
 
-              {/* Behavior Selection */}
+              {/* Behavior Selection & Edit */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Behavior:</label>
                 {selectedBehavior ? (
-                  <div className="p-3 bg-green-100 border border-green-300 rounded-md">
-                    <div className="font-medium text-green-800">{selectedBehavior}</div>
-                  </div>
+                  isEditingBehavior ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={editBehaviorValue}
+                        onChange={(e) => setEditBehaviorValue(e.target.value)}
+                        placeholder="Nhập behavior..."
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleConfirmEditBehavior();
+                          } else if (e.key === 'Escape') {
+                            handleCancelEditBehavior();
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleConfirmEditBehavior} className="flex-1">
+                          <Check className="w-4 h-4 mr-1" />
+                          Xác nhận
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleCancelEditBehavior} className="flex-1">
+                          <X className="w-4 h-4 mr-1" />
+                          Hủy
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-green-100 border border-green-300 rounded-md flex items-center justify-between">
+                      <div className="font-medium text-green-800">{selectedBehavior}</div>
+                      <Button size="sm" variant="ghost" onClick={handleStartEditBehavior}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )
                 ) : selectedOcean ? (
                   <Select value={selectedBehavior} onValueChange={handleBehaviorChange}>
                     <SelectTrigger>

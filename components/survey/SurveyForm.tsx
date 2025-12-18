@@ -124,7 +124,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
       console.log("📤 Sending payload:", payload)
       const created = await createSurveyScenario(payload);
       console.log("📥 Response:", created)
-      toast({ title: "Scenario Created", description: "Tạo scenario thành công." })
+      toast({ title: "Scenario Created", description: "Scenario created successfully." })
       setMinAge("")
       setMaxAge("")
       setPercentage("")

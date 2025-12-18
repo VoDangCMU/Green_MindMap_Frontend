@@ -22,7 +22,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -31,7 +30,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Eye, Plus, X } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Eye, Plus, X, Pencil, Check } from "lucide-react"
+import { OCEAN_DATA, type OceanKey } from "@/lib/ocean-data"
 
 interface Model {
   id: string
@@ -82,6 +87,11 @@ export function ModelsTable() {
   })
   const [newLocation, setNewLocation] = useState("")
 
+  // Behavior editing states
+  const [isEditingBehavior, setIsEditingBehavior] = useState(false)
+  const [editBehaviorValue, setEditBehaviorValue] = useState("")
+  const [behaviorPopoverOpen, setBehaviorPopoverOpen] = useState(false)
+
   const ageRangeOptions = [
     "0-17",
     "18-30",
@@ -91,16 +101,31 @@ export function ModelsTable() {
   ]
 
   const genderOptions = [
-    { value: "male", label: "Nam" },
-    { value: "female", label: "Nữ" },
-    { value: "other", label: "Khác" },
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "other", label: "Other" },
   ]
 
   const oceanOptions = ["O", "C", "E", "A", "N"]
 
+  // Get behaviors based on selected OCEAN
+  const getAvailableBehaviors = () => {
+    if (!formData.ocean || !OCEAN_DATA[formData.ocean as OceanKey]) {
+      return []
+    }
+    return OCEAN_DATA[formData.ocean as OceanKey].behaviors
+  }
+
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Reset behavior when OCEAN changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, behavior: "" }))
+    setIsEditingBehavior(false)
+    setEditBehaviorValue("")
+  }, [formData.ocean])
 
   const fetchData = async () => {
     try {
@@ -135,7 +160,6 @@ export function ModelsTable() {
         setModels(modelsData.data)
       }
 
-      // Handle both array response and object with data property
       if (Array.isArray(feedbacksData)) {
         setFeedbacks(feedbacksData)
       } else if (feedbacksData.data && Array.isArray(feedbacksData.data)) {
@@ -187,7 +211,7 @@ export function ModelsTable() {
       if (result.success) {
         setIsCreateDialogOpen(false)
         resetForm()
-        fetchData() // Refresh the table
+        fetchData()
       } else {
         console.error("Error creating model:", result)
       }
@@ -210,6 +234,8 @@ export function ModelsTable() {
       event: "",
     })
     setNewLocation("")
+    setIsEditingBehavior(false)
+    setEditBehaviorValue("")
   }
 
   const handleAddLocation = () => {
@@ -249,6 +275,31 @@ export function ModelsTable() {
 
   const getModelFeedbackCount = (modelId: string) => {
     return feedbacks.filter((feedback) => feedback.model_id === modelId).length
+  }
+
+  const handleSelectBehavior = (behavior: string) => {
+    setFormData({ ...formData, behavior })
+    setEditBehaviorValue(behavior)
+    setBehaviorPopoverOpen(false)
+  }
+
+  const handleStartEditBehavior = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsEditingBehavior(true)
+    setEditBehaviorValue(formData.behavior)
+  }
+
+  const handleConfirmEditBehavior = () => {
+    if (editBehaviorValue.trim()) {
+      setFormData({ ...formData, behavior: editBehaviorValue.trim() })
+    }
+    setIsEditingBehavior(false)
+    setBehaviorPopoverOpen(false)
+  }
+
+  const handleCancelEditBehavior = () => {
+    setIsEditingBehavior(false)
+    setEditBehaviorValue(formData.behavior)
   }
 
   if (loading) {
@@ -360,16 +411,109 @@ export function ModelsTable() {
               </Select>
             </div>
 
-            {/* Behavior */}
+            {/* Behavior Selection with Edit */}
             <div className="space-y-2">
-              <Label htmlFor="behavior">Behavior</Label>
-              <Textarea
-                id="behavior"
-                placeholder="Nhập hành vi (vd: tham gia giữ gìn vệ sinh môi trường sống)"
-                value={formData.behavior}
-                onChange={(e) => setFormData({ ...formData, behavior: e.target.value })}
-                rows={3}
-              />
+              <Label>Behavior</Label>
+              <Popover open={behaviorPopoverOpen} onOpenChange={setBehaviorPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between h-auto min-h-10 py-2"
+                    disabled={!formData.ocean}
+                  >
+                    <span className="text-left truncate flex-1">
+                      {formData.behavior || (formData.ocean ? "Select behavior..." : "Select OCEAN first")}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[500px] p-0" align="start">
+                  {isEditingBehavior ? (
+                    <div className="p-3 space-y-3">
+                      <Label className="text-sm font-medium">Edit Behavior</Label>
+                      <Input
+                        value={editBehaviorValue}
+                        onChange={(e) => setEditBehaviorValue(e.target.value)}
+                        placeholder="Enter custom behavior..."
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleConfirmEditBehavior()
+                          } else if (e.key === "Escape") {
+                            handleCancelEditBehavior()
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelEditBehavior}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleConfirmEditBehavior}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Confirm
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-1">
+                      {getAvailableBehaviors().map((behavior, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between px-3 py-2 hover:bg-muted cursor-pointer group"
+                        >
+                          <span
+                            className="flex-1 text-sm"
+                            onClick={() => handleSelectBehavior(behavior)}
+                          >
+                            {behavior}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditBehaviorValue(behavior)
+                              setIsEditingBehavior(true)
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                      {getAvailableBehaviors().length === 0 && (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No behaviors available for this OCEAN trait
+                        </div>
+                      )}
+                      <div className="border-t mt-1 pt-1">
+                        <div
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-muted cursor-pointer text-primary"
+                          onClick={() => {
+                            setEditBehaviorValue("")
+                            setIsEditingBehavior(true)
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span className="text-sm">Add custom behavior</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {formData.behavior && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Selected: {formData.behavior}
+                </p>
+              )}
             </div>
 
             {/* Context Section */}
@@ -402,7 +546,7 @@ export function ModelsTable() {
 
                 {/* Gender Multi-select */}
                 <div className="space-y-2">
-                  <Label>Gender (có thể chọn nhiều)</Label>
+                  <Label>Gender (multiple selection)</Label>
                   <div className="flex flex-wrap gap-2">
                     {genderOptions.map((option) => (
                       <div
@@ -426,10 +570,10 @@ export function ModelsTable() {
 
                 {/* Locations Multi-input */}
                 <div className="space-y-2">
-                  <Label>Locations (có thể nhập nhiều)</Label>
+                  <Label>Locations (multiple entries)</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Nhập địa điểm (vd: Quang Nam)"
+                      placeholder="Enter location (e.g., Quang Nam)"
                       value={newLocation}
                       onChange={(e) => setNewLocation(e.target.value)}
                       onKeyDown={(e) => {
@@ -468,7 +612,7 @@ export function ModelsTable() {
                     }
                   />
                   <Label htmlFor="urban" className="cursor-pointer">
-                    Urban (Thành thị)
+                    Urban Area
                   </Label>
                 </div>
               </div>
@@ -478,7 +622,7 @@ export function ModelsTable() {
                 <Label htmlFor="setting">Setting</Label>
                 <Input
                   id="setting"
-                  placeholder="Nhập setting (vd: làm sạch nguồn nước)"
+                  placeholder="Enter setting (e.g., water cleaning)"
                   value={formData.setting}
                   onChange={(e) => setFormData({ ...formData, setting: e.target.value })}
                 />
@@ -489,7 +633,7 @@ export function ModelsTable() {
                 <Label htmlFor="event">Event</Label>
                 <Input
                   id="event"
-                  placeholder="Nhập event (vd: Ngày Chủ nhật xanh tại khu dân cư nông thôn)"
+                  placeholder="Enter event (e.g., Green Sunday in rural area)"
                   value={formData.event}
                   onChange={(e) => setFormData({ ...formData, event: e.target.value })}
                 />

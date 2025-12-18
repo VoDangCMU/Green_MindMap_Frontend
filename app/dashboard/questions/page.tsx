@@ -76,8 +76,8 @@ export default function QuestionBuilderPage() {
       setModels(modelsData)
     } catch (error) {
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách model",
+        title: "Error",
+        description: "Unable to load model list",
         variant: "destructive",
       })
     } finally {
@@ -95,13 +95,13 @@ export default function QuestionBuilderPage() {
       setTemplates(data.templates)
 
       toast({
-        title: "Thành công",
-        description: `Đã tạo ${data.templates.length} templates`,
+        title: "Success",
+        description: `Created ${data.templates.length} templates`,
       })
     } catch (error) {
       toast({
-        title: "Lỗi",
-        description: "Không thể tạo template",
+        title: "Error",
+        description: "Unable to create template",
         variant: "destructive",
       })
     } finally {
@@ -115,8 +115,8 @@ export default function QuestionBuilderPage() {
 
     if (!selectedModel?.id) {
       toast({
-        title: "Lỗi",
-        description: "Không có model được chọn",
+        title: "Error",
+        description: "No model selected",
         variant: "destructive",
       })
       return
@@ -125,7 +125,7 @@ export default function QuestionBuilderPage() {
     try {
       setSaving(true)
 
-      // Thêm trait (ocean) và modelId vào mỗi template
+      // Add trait (ocean) and modelId to each template
       const templatesWithTraitAndModel = templates.map(template => ({
         ...template,
         trait: selectedModel.ocean,
@@ -140,15 +140,15 @@ export default function QuestionBuilderPage() {
       const data = await createTemplates(payload)
 
       toast({
-        title: "Thành công",
-        description: data.message || `Đã lưu ${data.count || templates.length} templates`,
+        title: "Success",
+        description: data.message || `Saved ${data.count || templates.length} templates`,
       })
 
       setTemplates([])
     } catch (error: any) {
       toast({
-        title: "Lỗi",
-        description: error.message || "Không thể lưu templates",
+        title: "Error",
+        description: error.message || "Unable to save templates",
         variant: "destructive",
       })
     } finally {
@@ -167,8 +167,8 @@ export default function QuestionBuilderPage() {
   const generateQuestions = async () => {
     if (selectedTemplates.length === 0) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng chọn ít nhất một template để tạo câu hỏi",
+        title: "Error",
+        description: "Please select at least one template to generate questions",
         variant: "destructive",
       })
       return
@@ -176,8 +176,8 @@ export default function QuestionBuilderPage() {
 
     if (!selectedModel) {
       toast({
-        title: "Lỗi",
-        description: "Không có model được chọn",
+        title: "Error",
+        description: "No model selected",
         variant: "destructive",
       })
       return
@@ -201,13 +201,13 @@ export default function QuestionBuilderPage() {
       setGeneratedQuestions(questionsWithModel)
 
       toast({
-        title: "Thành công",
-        description: `Đã tạo ${questionsData.length} câu hỏi từ ${selectedTemplates.length} templates`,
+        title: "Success",
+        description: `Generated ${questionsData.length} questions from ${selectedTemplates.length} templates`,
       })
     } catch (error) {
       toast({
-        title: "Lỗi",
-        description: "Không thể tạo câu hỏi từ templates",
+        title: "Error",
+        description: "Unable to generate questions from templates",
         variant: "destructive",
       })
     }
@@ -218,8 +218,8 @@ export default function QuestionBuilderPage() {
 
     if (!selectedModel?.id) {
       toast({
-        title: "Lỗi",
-        description: "Không có model được chọn hoặc model không có ID",
+        title: "Error",
+        description: "No model selected or model has no ID",
         variant: "destructive",
       })
       return
@@ -251,8 +251,8 @@ export default function QuestionBuilderPage() {
       const response = await createQuestions(questionsPayload)
 
       toast({
-        title: "Thành công",
-        description: `Đã lưu ${generatedQuestions.length} câu hỏi`,
+        title: "Success",
+        description: `Saved ${generatedQuestions.length} questions`,
       })
 
       setGeneratedQuestions([])
@@ -261,8 +261,8 @@ export default function QuestionBuilderPage() {
       router.push('/dashboard/questions-manage')
     } catch (error) {
       toast({
-        title: "Lỗi",
-        description: "Không thể lưu câu hỏi",
+        title: "Error",
+        description: "Unable to save questions",
         variant: "destructive",
       })
     } finally {
@@ -298,8 +298,8 @@ export default function QuestionBuilderPage() {
         <div className="grid gap-8 lg:grid-cols-2">
           <Card className="shadow-lg">
             <CardHeader className="border-b">
-              <CardTitle className="text-2xl">Danh sách Models</CardTitle>
-              <CardDescription className="text-base">Chọn model để tạo template câu hỏi</CardDescription>
+              <CardTitle className="text-2xl">Models List</CardTitle>
+              <CardDescription className="text-base">Select a model to create question templates</CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               {loadingModels ? (
@@ -307,7 +307,7 @@ export default function QuestionBuilderPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : models.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">Chưa có model nào</div>
+                <div className="text-center py-12 text-muted-foreground">No models available</div>
               ) : (
                 <div className="space-y-3 max-h-[650px] overflow-y-auto pr-2">
                   {models.map((model, index) => (
@@ -322,10 +322,10 @@ export default function QuestionBuilderPage() {
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
                                 <div>
-                                  <span className="font-medium">Tuổi:</span> {model.age} • <span className="font-medium">Giới tính:</span> {model.gender}
+                                  <span className="font-medium">Age:</span> {model.age} • <span className="font-medium">Gender:</span> {model.gender}
                                 </div>
                                 <div>
-                                  <span className="font-medium">Địa điểm:</span> {model.location}
+                                  <span className="font-medium">Location:</span> {model.location}
                                 </div>
                                 <div className="text-xs italic text-gray-500">"{model.keywords}"</div>
                               </div>
@@ -340,12 +340,12 @@ export default function QuestionBuilderPage() {
                             {generatingModelId === index ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Đang tạo...
+                                Generating...
                               </>
                             ) : (
                               <>
                                 <Sparkles className="mr-2 h-4 w-4" />
-                                Tạo Template
+                                Generate Template
                               </>
                             )}
                           </Button>
@@ -362,9 +362,9 @@ export default function QuestionBuilderPage() {
             <CardHeader className="border-b">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl">Templates đã tạo</CardTitle>
+                  <CardTitle className="text-2xl">Generated Templates</CardTitle>
                   <CardDescription className="text-base">
-                    {templates.length > 0 ? `${templates.length} templates từ model đã chọn` : "Chưa có template nào"}
+                    {templates.length > 0 ? `${templates.length} templates from selected model` : "No templates yet"}
                   </CardDescription>
                 </div>
                 {templates.length > 0 && (
@@ -377,12 +377,12 @@ export default function QuestionBuilderPage() {
                     {saving ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang lưu...
+                        Saving...
                       </>
                     ) : (
                       <>
                         <Save className="mr-2 h-4 w-4" />
-                        Lưu
+                        Save
                       </>
                     )}
                   </Button>
@@ -392,9 +392,9 @@ export default function QuestionBuilderPage() {
             <CardContent className="p-6">
               {selectedModel && templates.length > 0 && (
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-sm font-semibold mb-1 text-blue-900">Model đã chọn:</div>
+                  <div className="text-sm font-semibold mb-1 text-blue-900">Selected Model:</div>
                   <div className="text-xs text-blue-800">
-                    {selectedModel.ocean} • {selectedModel.behavior} • {selectedModel.age} tuổi • {selectedModel.gender} •{" "}
+                    {selectedModel.ocean} • {selectedModel.behavior} • {selectedModel.age} years • {selectedModel.gender} •{" "}
                     {selectedModel.location}
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export default function QuestionBuilderPage() {
               {templates.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">
                   <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-base">Chọn một model và nhấn "Tạo Template"</p>
+                  <p className="text-base">Select a model and click "Generate Template"</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -432,7 +432,7 @@ export default function QuestionBuilderPage() {
                             <div className="bg-gray-100 p-2 rounded text-sm ml-7 italic">{template.filled_prompt}</div>
 
                             <div className="text-xs space-y-1 ml-7">
-                              <div className="font-semibold text-gray-700">Loại câu trả lời:</div>
+                              <div className="font-semibold text-gray-700">Answer Type:</div>
                               {template.answer.type === "scale" && (
                                 <div className="flex flex-wrap gap-1">
                                   {template.answer.labels?.map((label, i) => (
@@ -468,7 +468,7 @@ export default function QuestionBuilderPage() {
                         className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
                       >
                         <Sparkles className="mr-2 h-4 w-4" />
-                        Sinh Câu Hỏi ({selectedTemplates.length})
+                        Generate Questions ({selectedTemplates.length})
                       </Button>
                     </div>
                   )}
@@ -483,11 +483,11 @@ export default function QuestionBuilderPage() {
           <CardHeader className="border-b">
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-2xl">Câu hỏi đã tạo</CardTitle>
+                <CardTitle className="text-2xl">Generated Questions</CardTitle>
                 <CardDescription className="text-base">
                   {generatedQuestions.length > 0
-                    ? `${generatedQuestions.length} câu hỏi đã tạo`
-                    : "Chưa có câu hỏi nào"}
+                    ? `${generatedQuestions.length} questions generated`
+                    : "No questions yet"}
                 </CardDescription>
               </div>
               {generatedQuestions.length > 0 && (
@@ -500,12 +500,12 @@ export default function QuestionBuilderPage() {
                   {savingQuestions ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang lưu...
+                      Saving...
                     </>
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      Lưu Câu Hỏi
+                      Save Questions
                     </>
                   )}
                 </Button>
@@ -516,7 +516,7 @@ export default function QuestionBuilderPage() {
             {generatedQuestions.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="text-base">Chọn ít nhất một template và nhấn "Sinh Câu Hỏi"</p>
+                <p className="text-base">Select at least one template and click "Generate Questions"</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
@@ -537,7 +537,7 @@ export default function QuestionBuilderPage() {
                         <div className="bg-gray-100 p-2 rounded text-sm italic">{question.filled_prompt}</div>
 
                         <div className="text-xs space-y-1">
-                          <div className="font-semibold text-gray-700">Loại câu trả lời: {question.question_type}</div>
+                          <div className="font-semibold text-gray-700">Answer Type: {question.question_type}</div>
                           {question.answer.type === "scale" && question.answer.labels && (
                             <div className="flex flex-wrap gap-1">
                               {question.answer.labels.map((label: string, i: number) => (

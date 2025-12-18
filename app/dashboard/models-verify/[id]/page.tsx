@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ScatterChart,
@@ -12,7 +11,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Cell,
-  Legend,
+  LabelList,
 } from "recharts"
 import {
   Card,
@@ -31,45 +30,73 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, CheckCircle, AlertTriangle, XCircle } from "lucide-react"
 
-interface Model {
-  id: string
-  ocean: string
-  behavior: string
-  age: string
-  location: string
-  gender: string
-  keywords: string
-  createdAt: string
-  updatedAt: string
+// Mock data for demonstration
+const MOCK_MODEL = {
+  id: "mock-model-1",
+  ocean: "A",
+  behavior: "purchasing behavior (hành vi mua sắm)",
+  age: "20-30",
+  location: "Quang Nam, Da Nang, Hue",
+  gender: "male, female",
+  keywords: "Tổ chức buổi họp dân bàn về lợi ích nguồn nước sạch tại nhà văn hóa thôn",
+  createdAt: "2024-12-18",
+  updatedAt: "2024-12-18",
 }
 
-interface MechanismFeedback {
-  awareness: string
-  motivation: string
-  capability: string
-  opportunity: string
-}
-
-interface Feedback {
-  id: string
-  model_id: string
-  user_id: string
-  trait_checked: string
-  expected: number
-  actual: number
-  deviation: number
-  engagement: number
-  match: boolean
-  level: string
-  feedback: string[]
-  mechanismFeedbacks: MechanismFeedback[]
-  createdAt: string
-  updatedAt: string
-  model: Model
-}
+const MOCK_FEEDBACKS = [
+  {
+    id: "fb-1",
+    subContext: "26-Da Nang-Male",
+    age: "26",
+    location: "Da Nang, Vietnam",
+    gender: "Male",
+    engagement: 8,
+    level: "good",
+    feedback: ["User shows strong engagement with the content", "Positive response to environmental initiatives"],
+  },
+  {
+    id: "fb-2",
+    subContext: "29-Quang Nam-Female",
+    age: "29",
+    location: "Quang Nam",
+    gender: "Female",
+    engagement: 8,
+    level: "good",
+    feedback: ["Active participation in community activities", "Good understanding of sustainability concepts"],
+  },
+  {
+    id: "fb-3",
+    subContext: "29-Quang Nam-Female",
+    age: "29",
+    location: "Quang Nam",
+    gender: "Female",
+    engagement: 9,
+    level: "excellent",
+    feedback: ["Excellent engagement score", "Strong advocate for green initiatives"],
+  },
+  {
+    id: "fb-4",
+    subContext: "20-Hue-Male",
+    age: "20",
+    location: "Hue",
+    gender: "Male",
+    engagement: 5,
+    level: "warning",
+    feedback: ["Moderate engagement", "Needs more targeted content"],
+  },
+  {
+    id: "fb-5",
+    subContext: "25-Quang Nam-Male",
+    age: "25",
+    location: "Quang Nam",
+    gender: "Male",
+    engagement: 2,
+    level: "critical_mismatch",
+    feedback: ["Very low engagement - Critical!", "Consider switching to Digital/Social Media Strategy"],
+  },
+]
 
 interface ChartDataPoint {
   id: string
@@ -79,6 +106,7 @@ interface ChartDataPoint {
   gender: string
   engagement: number
   engagementDisplay: number
+  engagementOriginal: number
   level: string
   recommendation: string
   feedback: string[]
@@ -124,7 +152,7 @@ const getRecommendationStatus = (score: number) => {
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload as ChartDataPoint
-    const score = data.engagementDisplay
+    const score = data.engagementOriginal
 
     return (
       <div className="bg-popover border rounded-lg p-3 shadow-lg max-w-xs">
@@ -172,89 +200,25 @@ const CustomTooltip = ({ active, payload }: any) => {
 export default function ModelVerifyDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const modelId = params.id as string
 
-  const [model, setModel] = useState<Model | null>(null)
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
-  const [loading, setLoading] = useState(true)
+  // Use mock data
+  const model = MOCK_MODEL
+  const feedbacks = MOCK_FEEDBACKS
 
-  useEffect(() => {
-    if (modelId) {
-      fetchData()
-    }
-  }, [modelId])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem("access_token")
-
-      if (!token) {
-        console.error("No access token found")
-        setLoading(false)
-        return
-      }
-
-      const [modelsResponse, feedbacksResponse] = await Promise.all([
-        fetch("https://green-api.khoav4.com/models/getAll", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }),
-        fetch("https://green-api.khoav4.com/models/feedbacks", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }),
-      ])
-
-      const modelsData = await modelsResponse.json()
-      const feedbacksData = await feedbacksResponse.json()
-
-      if (modelsData.success) {
-        const foundModel = modelsData.data.find((m: Model) => m.id === modelId)
-        setModel(foundModel || null)
-      }
-
-      let feedbackList: Feedback[] = []
-      if (Array.isArray(feedbacksData)) {
-        feedbackList = feedbacksData
-      } else if (feedbacksData.data && Array.isArray(feedbacksData.data)) {
-        feedbackList = feedbacksData.data
-      }
-
-      const modelFeedbacks = feedbackList.filter((f) => f.model_id === modelId)
-      setFeedbacks(modelFeedbacks)
-
-      // Transform feedbacks to chart data
-      const transformedData: ChartDataPoint[] = modelFeedbacks.map((feedback, index) => {
-        const engagementScore = feedback.engagement * 10 // Convert to 0-10 scale
-        const subContext = `${feedback.model?.age || "N/A"}-${feedback.model?.location || "N/A"}-${feedback.model?.gender || "N/A"}`
-
-        return {
-          id: feedback.id,
-          subContext,
-          age: feedback.model?.age || "N/A",
-          location: feedback.model?.location || "N/A",
-          gender: feedback.model?.gender || "N/A",
-          engagement: index, // Y position (categorical index)
-          engagementDisplay: engagementScore,
-          level: feedback.level,
-          recommendation: getRecommendation(engagementScore),
-          feedback: feedback.feedback || [],
-        }
-      })
-
-      setChartData(transformedData)
-    } catch (error) {
-      console.error("Error fetching data:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Transform feedbacks to chart data
+  const chartData: ChartDataPoint[] = feedbacks.map((feedback, index) => ({
+    id: feedback.id,
+    subContext: feedback.subContext,
+    age: feedback.age,
+    location: feedback.location,
+    gender: feedback.gender,
+    engagement: index, // Y position (categorical index)
+    engagementDisplay: 10 - feedback.engagement, // Reverse: 10 becomes 0, 0 becomes 10
+    engagementOriginal: feedback.engagement, // Keep original for display
+    level: feedback.level,
+    recommendation: getRecommendation(feedback.engagement),
+    feedback: feedback.feedback,
+  }))
 
   const getOceanFullName = (trait: string): string => {
     const names: Record<string, string> = {
@@ -265,35 +229,6 @@ export default function ModelVerifyDetailPage() {
       N: "Neuroticism",
     }
     return names[trait] || trait
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-6 p-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-96 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    )
-  }
-
-  if (!model) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground text-center">Model not found</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   return (
@@ -307,7 +242,7 @@ export default function ModelVerifyDetailPage() {
         <div>
           <h1 className="text-3xl font-bold">Model Verification</h1>
           <p className="text-muted-foreground">
-            Analyze engagement scores and recommendations
+            Analyze engagement scores and recommendations (Mock Data)
           </p>
         </div>
       </div>
@@ -331,19 +266,19 @@ export default function ModelVerifyDetailPage() {
             </div>
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Target Age</p>
-              <p className="font-medium">{model.age || "N/A"}</p>
+              <p className="font-medium">{model.age}</p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Target Gender</p>
-              <p className="font-medium">{model.gender || "N/A"}</p>
+              <p className="font-medium">{model.gender}</p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Location</p>
-              <p className="font-medium">{model.location || "N/A"}</p>
+              <p className="font-medium">{model.location}</p>
             </div>
             <div className="space-y-1 md:col-span-2">
               <p className="text-sm text-muted-foreground">Keywords (Current Strategy)</p>
-              <p className="font-medium">{model.keywords || "No keywords generated"}</p>
+              <p className="font-medium">{model.keywords}</p>
             </div>
           </div>
         </CardContent>
@@ -355,101 +290,102 @@ export default function ModelVerifyDetailPage() {
           <CardTitle>Engagement Score Analysis</CardTitle>
           <CardDescription>
             Horizontal dot plot showing engagement scores by sub-context.
-            <span className="text-red-500 ml-1">Red line (5)</span> = Critical Threshold,
-            <span className="text-green-500 ml-1">Green line (8)</span> = Target
+            <span className="text-red-500 ml-1">Red (10)</span> = Critical,
+            <span className="text-blue-500 ml-1">Blue (0)</span> = Best
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {chartData.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
-              No feedback data available for visualization
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 50)}>
-              <ScatterChart
-                margin={{ top: 20, right: 30, bottom: 20, left: 150 }}
+          <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 60)}>
+            <ScatterChart
+              margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                dataKey="engagementDisplay"
+                name="Engagement Score"
+                domain={[0, 10]}
+                tickCount={11}
+                tickFormatter={(value) => `${10 - value}`}
+                label={{
+                  value: "Engagement Score (10 → 0)",
+                  position: "bottom",
+                  offset: 0,
+                }}
+              />
+              <YAxis
+                type="number"
+                dataKey="engagement"
+                name="Index"
+                hide={true}
+                domain={[-0.5, chartData.length - 0.5]}
+              />
+              <Tooltip content={<CustomTooltip />} />
+
+              {/* Red bar at position 10 (display 0) */}
+              <ReferenceLine
+                x={0}
+                stroke="#ef4444"
+                strokeWidth={4}
+                label={{
+                  value: "10",
+                  position: "top",
+                  fill: "#ef4444",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              />
+
+              {/* Blue bar at position 0 (display 10) */}
+              <ReferenceLine
+                x={10}
+                stroke="#3b82f6"
+                strokeWidth={4}
+                label={{
+                  value: "0",
+                  position: "top",
+                  fill: "#3b82f6",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              />
+
+              <Scatter
+                name="Engagement Points"
+                data={chartData}
+                fill="#8884d8"
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  type="number"
-                  dataKey="engagementDisplay"
-                  name="Engagement Score"
-                  domain={[0, 10]}
-                  tickCount={11}
-                  label={{
-                    value: "Engagement Score",
-                    position: "bottom",
-                    offset: 0,
-                  }}
-                />
-                <YAxis
-                  type="category"
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={getScoreColor(entry.engagementOriginal)}
+                    stroke={getScoreColor(entry.engagementOriginal)}
+                    strokeWidth={2}
+                    r={8}
+                  />
+                ))}
+                <LabelList
                   dataKey="subContext"
-                  name="Sub-context"
-                  width={140}
-                  tick={{ fontSize: 12 }}
+                  position="right"
+                  offset={12}
+                  style={{ fontSize: 11, fontWeight: 500 }}
                 />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-
-                {/* Critical Threshold Line (Red) at X=5 */}
-                <ReferenceLine
-                  x={5}
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  label={{
-                    value: "Critical (5)",
-                    position: "top",
-                    fill: "#ef4444",
-                    fontSize: 12,
-                  }}
-                />
-
-                {/* Target Line (Green) at X=8 */}
-                <ReferenceLine
-                  x={8}
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  label={{
-                    value: "Target (8)",
-                    position: "top",
-                    fill: "#22c55e",
-                    fontSize: 12,
-                  }}
-                />
-
-                <Scatter
-                  name="Engagement Points"
-                  data={chartData}
-                  fill="#8884d8"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getScoreColor(entry.engagementDisplay)}
-                      stroke={getScoreColor(entry.engagementDisplay)}
-                      strokeWidth={2}
-                    />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          )}
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
 
           {/* Legend for colors */}
           <div className="flex flex-wrap gap-4 mt-4 justify-center">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
+              <div className="w-4 h-4 rounded-full bg-green-500" />
               <span className="text-sm">Score ≥ 7: Keep Strategy</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
+              <div className="w-4 h-4 rounded-full bg-yellow-500" />
               <span className="text-sm">Score 5-7: Optimize</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
+              <div className="w-4 h-4 rounded-full bg-red-500" />
               <span className="text-sm">Score &lt; 5: Change Strategy</span>
             </div>
           </div>
@@ -479,57 +415,48 @@ export default function ModelVerifyDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {feedbacks.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      No feedback records found for this model
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  feedbacks.map((feedback) => {
-                    const score = feedback.engagement * 10
-                    const status = getRecommendationStatus(score)
-                    const subContext = `${feedback.model?.age || "N/A"}-${feedback.model?.location || "N/A"}-${feedback.model?.gender || "N/A"}`
+                {feedbacks.map((feedback) => {
+                  const score = feedback.engagement
+                  const status = getRecommendationStatus(score)
 
-                    return (
-                      <TableRow key={feedback.id}>
-                        <TableCell className="font-medium">{subContext}</TableCell>
-                        <TableCell>{feedback.model?.age || "N/A"}</TableCell>
-                        <TableCell>{feedback.model?.location || "N/A"}</TableCell>
-                        <TableCell>{feedback.model?.gender || "N/A"}</TableCell>
-                        <TableCell>
-                          <span
-                            className="font-semibold"
-                            style={{ color: getScoreColor(score) }}
-                          >
-                            {score.toFixed(1)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              feedback.level === "critical_mismatch"
-                                ? "destructive"
-                                : feedback.level === "good"
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {feedback.level}
+                  return (
+                    <TableRow key={feedback.id}>
+                      <TableCell className="font-medium">{feedback.subContext}</TableCell>
+                      <TableCell>{feedback.age}</TableCell>
+                      <TableCell>{feedback.location}</TableCell>
+                      <TableCell>{feedback.gender}</TableCell>
+                      <TableCell>
+                        <span
+                          className="font-semibold"
+                          style={{ color: getScoreColor(score) }}
+                        >
+                          {score.toFixed(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            feedback.level === "critical_mismatch"
+                              ? "destructive"
+                              : feedback.level === "excellent" || feedback.level === "good"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {feedback.level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {status.icon}
+                          <Badge variant={status.variant} className={status.className}>
+                            {status.text}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {status.icon}
-                            <Badge variant={status.variant} className={status.className}>
-                              {status.text}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
@@ -538,4 +465,3 @@ export default function ModelVerifyDetailPage() {
     </div>
   )
 }
-

@@ -125,6 +125,7 @@ export default function DetailEditor() {
       const payload = {
         ocean: selectedOcean,
         behavior: selectedBehavior,
+        keyword: finalKeywords, // Thêm keyword vào payload
         context: {
           population: {
             age_range: getAgeRange(),
@@ -152,7 +153,7 @@ export default function DetailEditor() {
       setSelectedGeneratedKeyword('');
 
       toast.success(
-        `✅ Đã lưu thành công model!\n🔹 OCEAN: ${selectedOcean}\n🔹 Behavior: ${selectedBehavior}`,
+        `🎉 Đã lưu thành công model!\n📊 OCEAN: ${selectedOcean}\n🎯 Behavior: ${selectedBehavior}`,
         {
           duration: 5000,
           style: {
@@ -185,21 +186,6 @@ export default function DetailEditor() {
 
   return (
     <div className="w-96 space-y-4">
-      {/* Behavior Editor */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Behavior</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            placeholder="Nhập hành vi (vd: tham gia giữ gìn vệ sinh môi trường sống)"
-            value={selectedBehavior}
-            onChange={(e) => useOceanModelStore.getState().setSelectedBehavior(e.target.value)}
-            rows={3}
-          />
-        </CardContent>
-      </Card>
-
       {/* Context Form */}
       <Card>
         <CardHeader>
