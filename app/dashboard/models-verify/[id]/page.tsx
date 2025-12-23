@@ -512,13 +512,13 @@ export default function ModelVerifyDetailPage() {
                       fill={getScoreColor(entry.engagementOriginal)}
                       stroke={getScoreColor(entry.engagementOriginal)}
                       strokeWidth={2}
-                      r={12}
+                      r={30}
                     />
                   ))}
                   <LabelList
                     dataKey="subContext"
                     position="right"
-                    offset={12}
+                    offset={30}
                     style={{ fontSize: 13, fontWeight: 500 }}
                   />
                 </Scatter>
