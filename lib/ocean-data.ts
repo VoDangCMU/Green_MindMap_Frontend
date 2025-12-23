@@ -1,33 +1,33 @@
 export const OCEAN_DATA = {
     O: {
-        label: 'Openness (Cởi mở)',
+        label: 'Openness',
         behaviors: [
-            'modibility behavior (hành vi thích nghi/thay đổi)'
+            'modibility behavior (adaptive/change behavior)'
         ]
     },
     C: {
-        label: 'Conscientiousness (Tận tâm)',
+        label: 'Conscientiousness',
         behaviors: [
-            'goal setting behavior (hành vi đặt mục tiêu)'
+            'goal setting behavior'
         ]
     },
     E: {
-        label: 'Extraversion (Hướng ngoại)',
+        label: 'Extraversion',
         behaviors: [
-            'eating behavior (hành vi ăn uống)',
-            'social interaction (hành vi tương tác xã hội)'
+            'eating behavior',
+            'social interaction'
         ]
     },
     A: {
-        label: 'Agreeableness (Dễ gần)',
+        label: 'Agreeableness',
         behaviors: [
-            'purchasing behavior (hành vi mua sắm)'
+            'purchasing behavior'
         ]
     },
     N: {
-        label: 'Neuroticism (Bất ổn cảm xúc)',
+        label: 'Neuroticism',
         behaviors: [
-            'affective state (trạng thái cảm xúc)'
+            'affective state (emotional state)'
         ]
     }
 } as const;

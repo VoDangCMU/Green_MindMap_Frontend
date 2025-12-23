@@ -95,10 +95,10 @@ export default function TreeCanvas() {
           {!selectedOcean && !selectedBehavior ? (
             <div className="text-center text-gray-500">
               <div className="text-lg font-medium mb-2">
-                Kéo thả OCEAN category hoặc behavior vào đây
+                Drag and drop OCEAN category or behavior here
               </div>
               <div className="text-sm">
-                Bạn có thể kéo thả các mục từ Toolbox bên trái
+                You can drag and drop items from the Toolbox on the left
               </div>
             </div>
           ) : (
@@ -126,7 +126,7 @@ export default function TreeCanvas() {
                       <Input
                         value={editBehaviorValue}
                         onChange={(e) => setEditBehaviorValue(e.target.value)}
-                        placeholder="Nhập behavior..."
+                        placeholder="Enter behavior..."
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -139,11 +139,11 @@ export default function TreeCanvas() {
                       <div className="flex gap-2">
                         <Button size="sm" onClick={handleConfirmEditBehavior} className="flex-1">
                           <Check className="w-4 h-4 mr-1" />
-                          Xác nhận
+                          Confirm
                         </Button>
                         <Button size="sm" variant="outline" onClick={handleCancelEditBehavior} className="flex-1">
                           <X className="w-4 h-4 mr-1" />
-                          Hủy
+                          Cancel
                         </Button>
                       </div>
                     </div>
@@ -158,7 +158,7 @@ export default function TreeCanvas() {
                 ) : selectedOcean ? (
                   <Select value={selectedBehavior} onValueChange={handleBehaviorChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn behavior..." />
+                      <SelectValue placeholder="Select behavior..." />
                     </SelectTrigger>
                     <SelectContent>
                       {allBehaviors.map(({ behavior }, index) => (
@@ -170,7 +170,7 @@ export default function TreeCanvas() {
                   </Select>
                 ) : (
                   <div className="p-3 bg-gray-100 border border-gray-300 rounded-md text-gray-500">
-                    Chọn OCEAN category trước
+                    Select OCEAN category first
                   </div>
                 )}
               </div>
