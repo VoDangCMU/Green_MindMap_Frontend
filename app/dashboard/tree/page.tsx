@@ -51,7 +51,7 @@ export default function TreeModelBuilder() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold">OCEAN Model Builder</h1>
         <p className="text-gray-600 mt-2">
-          Kéo thả các OCEAN categories và behaviors để tạo model mới
+          Drag and drop OCEAN categories and behaviors to create a new model
         </p>
       </div>
 

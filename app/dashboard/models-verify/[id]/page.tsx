@@ -56,15 +56,16 @@ interface Feedback {
   segment_id: string
   user_id: string
   trait_checked: string
-  expected: number
-  actual: number
-  deviation: number
-  engagement: number
+  expected: number | string
+  actual: number | string
+  deviation: number | string
+  engagement: number | string
   match: boolean
   level: string
   feedback: string[]
   mechanismFeedbacks: any[]
   segment: Segment
+  created_at?: string
 }
 
 interface Model {
@@ -84,6 +85,7 @@ interface ApiResponse {
 
 interface ChartDataPoint {
   id: string
+  segmentId: string
   subContext: string
   age: string
   location: string
@@ -94,9 +96,27 @@ interface ChartDataPoint {
   level: string
   recommendation: string
   feedback: string[]
+  feedbackCount: number
+}
+
+// Group feedbacks by segment
+interface GroupedFeedback {
+  segmentId: string
+  segment: Segment
+  feedbacks: Feedback[]
+  latestFeedback: Feedback
+  totalCount: number
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+
+// Helper function to safely format numbers
+const formatNumber = (value: any, decimals: number = 2): string => {
+  if (value === null || value === undefined || value === "") return "-"
+  const num = typeof value === "number" ? value : parseFloat(String(value))
+  if (isNaN(num)) return "-"
+  return num.toFixed(decimals)
+}
 
 // Score is 0-10 scale
 const getScoreColor = (score: number): string => {
@@ -162,6 +182,10 @@ const CustomTooltip = ({ active, payload }: any) => {
             <span className="text-muted-foreground">Location: </span>
             {data.location}
           </p>
+          <p>
+            <span className="text-muted-foreground">Total Feedbacks: </span>
+            <Badge variant="secondary" className="ml-1">{data.feedbackCount}</Badge>
+          </p>
         </div>
         <div className="mt-2 pt-2 border-t">
           <p className="text-xs font-medium" style={{ color: getScoreColor(score) }}>
@@ -170,7 +194,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         </div>
         {data.feedback && data.feedback.length > 0 && (
           <div className="mt-2 pt-2 border-t">
-            <p className="text-xs text-muted-foreground">Suggestions:</p>
+            <p className="text-xs text-muted-foreground">Latest Suggestions:</p>
             <ul className="list-disc list-inside text-xs mt-1">
               {data.feedback.slice(0, 2).map((item, idx) => (
                 <li key={idx} className="truncate">{item}</li>
@@ -184,120 +208,6 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null
 }
 
-// MOCK DATA - TODO: Remove after testing
-const MOCK_FEEDBACKS: Feedback[] = [
-  {
-    id: "mock-1",
-    model_id: "mock",
-    segment_id: "seg-1",
-    user_id: "user-1",
-    trait_checked: "A",
-    expected: 0.7,
-    actual: 0.8,
-    deviation: 0.1,
-    engagement: 0.8,
-    match: true,
-    level: "good",
-    feedback: ["User shows strong engagement", "Positive response"],
-    mechanismFeedbacks: [],
-    segment: {
-      id: "seg-1",
-      name: "26-Da Nang-Male",
-      location: "Da Nang",
-      ageRange: "26",
-      gender: "Male",
-    },
-  },
-  {
-    id: "mock-2",
-    model_id: "mock",
-    segment_id: "seg-2",
-    user_id: "user-2",
-    trait_checked: "A",
-    expected: 0.6,
-    actual: 0.9,
-    deviation: 0.3,
-    engagement: 0.9,
-    match: true,
-    level: "excellent",
-    feedback: ["Excellent engagement score"],
-    mechanismFeedbacks: [],
-    segment: {
-      id: "seg-2",
-      name: "29-Quang Nam-Female",
-      location: "Quang Nam",
-      ageRange: "29",
-      gender: "Female",
-    },
-  },
-  {
-    id: "mock-3",
-    model_id: "mock",
-    segment_id: "seg-3",
-    user_id: "user-3",
-    trait_checked: "A",
-    expected: 0.7,
-    actual: 0.5,
-    deviation: 0.2,
-    engagement: 0.5,
-    match: false,
-    level: "warning",
-    feedback: ["Moderate engagement", "Needs optimization"],
-    mechanismFeedbacks: [],
-    segment: {
-      id: "seg-3",
-      name: "20-Hue-Male",
-      location: "Hue",
-      ageRange: "20",
-      gender: "Male",
-    },
-  },
-  {
-    id: "mock-4",
-    model_id: "mock",
-    segment_id: "seg-4",
-    user_id: "user-4",
-    trait_checked: "A",
-    expected: 0.8,
-    actual: 0.2,
-    deviation: 0.6,
-    engagement: 0.2,
-    match: false,
-    level: "critical_mismatch",
-    feedback: ["Very low engagement - Critical!", "Switch to Digital Strategy"],
-    mechanismFeedbacks: [],
-    segment: {
-      id: "seg-4",
-      name: "25-Quang Nam-Male",
-      location: "Quang Nam",
-      ageRange: "25",
-      gender: "Male",
-    },
-  },
-  {
-    id: "mock-5",
-    model_id: "mock",
-    segment_id: "seg-5",
-    user_id: "user-5",
-    trait_checked: "A",
-    expected: 0.6,
-    actual: 0.65,
-    deviation: 0.05,
-    engagement: 0.65,
-    match: true,
-    level: "good",
-    feedback: ["Good engagement", "Room for improvement"],
-    mechanismFeedbacks: [],
-    segment: {
-      id: "seg-5",
-      name: "35-Da Nang-Female",
-      location: "Da Nang",
-      ageRange: "35",
-      gender: "Female",
-    },
-  },
-]
-
 export default function ModelVerifyDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -308,8 +218,8 @@ export default function ModelVerifyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Modal state
-  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null)
+  // Modal state - now holds multiple feedbacks for a segment
+  const [selectedSegmentFeedbacks, setSelectedSegmentFeedbacks] = useState<Feedback[] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
@@ -342,9 +252,7 @@ export default function ModelVerifyDetailPage() {
       const data: ApiResponse = await response.json()
 
       setModel(data.model)
-      // Use MOCK_FEEDBACKS if API returns empty feedbacks (for testing)
-      const apiFeedbacks = data.feedbacks || []
-      setFeedbacks(apiFeedbacks.length > 0 ? apiFeedbacks : MOCK_FEEDBACKS)
+      setFeedbacks(data.feedbacks || [])
     } catch (err) {
       console.error("Error fetching data:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch data")
@@ -353,28 +261,59 @@ export default function ModelVerifyDetailPage() {
     }
   }
 
-  const handleViewFeedback = (feedback: Feedback) => {
-    setSelectedFeedback(feedback)
+  // Group feedbacks by segment_id
+  const groupedFeedbacks: GroupedFeedback[] = Object.values(
+    feedbacks.reduce((acc, feedback) => {
+      const segmentId = feedback.segment_id
+      if (!acc[segmentId]) {
+        acc[segmentId] = {
+          segmentId,
+          segment: feedback.segment,
+          feedbacks: [],
+          latestFeedback: feedback,
+          totalCount: 0,
+        }
+      }
+      acc[segmentId].feedbacks.push(feedback)
+      acc[segmentId].totalCount++
+
+      // Update latest feedback (assuming latest is last in array or has newest created_at)
+      if (feedback.created_at && acc[segmentId].latestFeedback.created_at) {
+        if (new Date(feedback.created_at) > new Date(acc[segmentId].latestFeedback.created_at)) {
+          acc[segmentId].latestFeedback = feedback
+        }
+      } else {
+        // If no created_at, take the last one
+        acc[segmentId].latestFeedback = feedback
+      }
+
+      return acc
+    }, {} as Record<string, GroupedFeedback>)
+  )
+
+  const handleViewSegmentFeedbacks = (segmentFeedbacks: Feedback[]) => {
+    setSelectedSegmentFeedbacks(segmentFeedbacks)
     setIsModalOpen(true)
   }
 
-  // Transform feedbacks to chart data
-  // Check if engagement is 0-1 scale or 0-10 scale and convert accordingly
-  const chartData: ChartDataPoint[] = feedbacks.map((feedback, index) => {
-    // If engagement > 1, assume it's already 0-10 scale, otherwise convert from 0-1
-    const engagementScore = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
+  // Transform grouped feedbacks to chart data - only show latest state per segment
+  const chartData: ChartDataPoint[] = groupedFeedbacks.map((group, index) => {
+    const latestFeedback = group.latestFeedback
+    const engagementScore = latestFeedback.engagement > 1 ? latestFeedback.engagement : latestFeedback.engagement * 10
     return {
-      id: feedback.id,
-      subContext: feedback.segment?.name || `${feedback.segment?.ageRange}-${feedback.segment?.location}-${feedback.segment?.gender}`,
-      age: feedback.segment?.ageRange || "",
-      location: feedback.segment?.location || "",
-      gender: feedback.segment?.gender || "",
+      id: latestFeedback.id,
+      segmentId: group.segmentId,
+      subContext: latestFeedback.segment?.name || `${latestFeedback.segment?.ageRange}-${latestFeedback.segment?.location}-${latestFeedback.segment?.gender}`,
+      age: latestFeedback.segment?.ageRange || "",
+      location: latestFeedback.segment?.location || "",
+      gender: latestFeedback.segment?.gender || "",
       engagement: index, // Y position (categorical index)
       engagementDisplay: 10 - engagementScore, // Reverse: 10 becomes 0, 0 becomes 10
       engagementOriginal: engagementScore, // Keep original for display (0-10 scale)
-      level: feedback.level,
+      level: latestFeedback.level,
       recommendation: getRecommendation(engagementScore),
-      feedback: feedback.feedback,
+      feedback: latestFeedback.feedback,
+      feedbackCount: group.totalCount,
     }
   })
 
@@ -497,10 +436,13 @@ export default function ModelVerifyDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Section 2: Scatter Plot Chart with 2 columns (Red at 10, Blue at 0) */}
+      {/* Section 2: Scatter Plot Chart - Latest State per Segment */}
       <Card>
         <CardHeader>
-          <CardTitle>Engagement Score Analysis</CardTitle>
+          <CardTitle>Engagement Score Analysis (Latest State per Segment)</CardTitle>
+          <CardDescription>
+            Showing the most recent feedback state for each segment
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
@@ -570,14 +512,14 @@ export default function ModelVerifyDetailPage() {
                       fill={getScoreColor(entry.engagementOriginal)}
                       stroke={getScoreColor(entry.engagementOriginal)}
                       strokeWidth={2}
-                      r={8}
+                      r={12}
                     />
                   ))}
                   <LabelList
                     dataKey="subContext"
                     position="right"
                     offset={12}
-                    style={{ fontSize: 11, fontWeight: 500 }}
+                    style={{ fontSize: 13, fontWeight: 500 }}
                   />
                 </Scatter>
               </ScatterChart>
@@ -606,12 +548,12 @@ export default function ModelVerifyDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Section 3: Detailed Data Table */}
+      {/* Section 3: Grouped Data Table by Segment */}
       <Card>
         <CardHeader>
-          <CardTitle>Feedback Details</CardTitle>
+          <CardTitle>Feedback Details by Segment</CardTitle>
           <CardDescription>
-            Complete list of feedback records with AI recommendations
+            Each row represents a segment with its latest feedback state. Click View to see all feedbacks.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -619,36 +561,38 @@ export default function ModelVerifyDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sub-context</TableHead>
+                  <TableHead>Segment</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Gender</TableHead>
-                  <TableHead>Score</TableHead>
+                  <TableHead>Latest Score</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>AI Recommendation</TableHead>
+                  <TableHead>Feedbacks</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {feedbacks.length === 0 ? (
+                {groupedFeedbacks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground">
                       No feedbacks found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  feedbacks.map((feedback) => {
-                    const score = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
+                  groupedFeedbacks.map((group) => {
+                    const latestFeedback = group.latestFeedback
+                    const score = latestFeedback.engagement > 1 ? latestFeedback.engagement : latestFeedback.engagement * 10
                     const status = getRecommendationStatus(score)
 
                     return (
-                      <TableRow key={feedback.id}>
+                      <TableRow key={group.segmentId}>
                         <TableCell className="font-medium">
-                          {feedback.segment?.name || `${feedback.segment?.ageRange}-${feedback.segment?.location}-${feedback.segment?.gender}`}
+                          {latestFeedback.segment?.name || `${latestFeedback.segment?.ageRange}-${latestFeedback.segment?.location}-${latestFeedback.segment?.gender}`}
                         </TableCell>
-                        <TableCell>{feedback.segment?.ageRange || "-"}</TableCell>
-                        <TableCell>{feedback.segment?.location || "-"}</TableCell>
-                        <TableCell>{feedback.segment?.gender || "-"}</TableCell>
+                        <TableCell>{latestFeedback.segment?.ageRange || "-"}</TableCell>
+                        <TableCell>{latestFeedback.segment?.location || "-"}</TableCell>
+                        <TableCell>{latestFeedback.segment?.gender || "-"}</TableCell>
                         <TableCell>
                           <span
                             className="font-semibold"
@@ -660,14 +604,14 @@ export default function ModelVerifyDetailPage() {
                         <TableCell>
                           <Badge
                             variant={
-                              feedback.level === "critical_mismatch"
+                              latestFeedback.level === "critical_mismatch"
                                 ? "destructive"
-                                : feedback.level === "excellent" || feedback.level === "good" || feedback.match
+                                : latestFeedback.level === "excellent" || latestFeedback.level === "good" || latestFeedback.match
                                 ? "default"
                                 : "secondary"
                             }
                           >
-                            {feedback.level}
+                            {latestFeedback.level}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -679,12 +623,18 @@ export default function ModelVerifyDetailPage() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          <Badge variant="outline">
+                            {group.totalCount} {group.totalCount === 1 ? 'feedback' : 'feedbacks'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleViewFeedback(feedback)}
+                            onClick={() => handleViewSegmentFeedbacks(group.feedbacks)}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -697,132 +647,206 @@ export default function ModelVerifyDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Feedback Detail Modal */}
+      {/* Segment Feedbacks Modal - Shows all feedbacks for selected segment */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              Segment Feedback Details
+              All Feedbacks for Segment
             </DialogTitle>
             <DialogDescription>
-              {selectedFeedback?.segment?.name || "Segment feedback information"}
+              {selectedSegmentFeedbacks && selectedSegmentFeedbacks.length > 0
+                ? `${selectedSegmentFeedbacks[0].segment?.name || "Segment"} - Total: ${selectedSegmentFeedbacks.length} feedbacks`
+                : "Segment feedback information"}
             </DialogDescription>
           </DialogHeader>
 
-          {selectedFeedback && (
+          {selectedSegmentFeedbacks && selectedSegmentFeedbacks.length > 0 && (
             <div className="space-y-6">
               {/* Segment Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Segment Name</p>
-                  <p className="font-medium">{selectedFeedback.segment?.name || "-"}</p>
+                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.name || "-"}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-medium">{selectedFeedback.segment?.location || "-"}</p>
+                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.location || "-"}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Age Range</p>
-                  <p className="font-medium">{selectedFeedback.segment?.ageRange || "-"}</p>
+                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.ageRange || "-"}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Gender</p>
-                  <p className="font-medium">{selectedFeedback.segment?.gender || "-"}</p>
+                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.gender || "-"}</p>
                 </div>
               </div>
 
-              {/* Score Metrics */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-3">Score Metrics</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Trait Checked</p>
-                    <Badge variant="outline">{selectedFeedback.trait_checked}</Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Expected</p>
-                    <p className="font-medium">{selectedFeedback.expected?.toFixed(2)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Actual</p>
-                    <p className="font-medium">{selectedFeedback.actual?.toFixed(2)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Deviation</p>
-                    <p className={`font-medium ${selectedFeedback.deviation > 0.2 ? "text-red-500" : "text-green-500"}`}>
-                      {selectedFeedback.deviation?.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Engagement</p>
-                    <p className="font-medium" style={{ color: getScoreColor(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10) }}>
-                      {(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10).toFixed(1)}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Match</p>
-                    <Badge variant={selectedFeedback.match ? "default" : "destructive"}>
-                      {selectedFeedback.match ? "Yes" : "No"}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Level</p>
-                    <Badge
-                      variant={
-                        selectedFeedback.level === "critical_mismatch"
-                          ? "destructive"
-                          : selectedFeedback.level === "excellent" || selectedFeedback.level === "good"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {selectedFeedback.level}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+              {/* All Feedbacks for this Segment */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Feedback History</h4>
 
-              {/* Feedback List */}
-              {selectedFeedback.feedback && selectedFeedback.feedback.length > 0 && (
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-3">Feedback</h4>
-                  <ul className="space-y-2">
-                    {selectedFeedback.feedback.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-muted-foreground">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                {selectedSegmentFeedbacks.map((feedback, index) => {
+                  const score = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
 
-              {/* Mechanism Feedbacks */}
-              {selectedFeedback.mechanismFeedbacks && selectedFeedback.mechanismFeedbacks.length > 0 && (
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-3">Mechanism Feedbacks</h4>
-                  <div className="space-y-2">
-                    {selectedFeedback.mechanismFeedbacks.map((mf: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-muted rounded-lg">
-                        <pre className="text-sm whitespace-pre-wrap">
-                          {typeof mf === "string" ? mf : JSON.stringify(mf, null, 2)}
-                        </pre>
+                  return (
+                    <div key={feedback.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-semibold">
+                          Feedback #{selectedSegmentFeedbacks.length - index}
+                          {index === 0 && <Badge className="ml-2" variant="default">Latest</Badge>}
+                        </h5>
+                        {feedback.created_at && (
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(feedback.created_at).toLocaleString()}
+                          </span>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* AI Recommendation */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-3">AI Recommendation</h4>
-                <div className="flex items-center gap-2">
-                  {getRecommendationStatus(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10).icon}
-                  <span className="font-medium" style={{ color: getScoreColor(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10) }}>
-                    {getRecommendation(selectedFeedback.engagement > 1 ? selectedFeedback.engagement : selectedFeedback.engagement * 10)}
-                  </span>
-                </div>
+                      {/* Score Metrics */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Trait Checked</p>
+                          <Badge variant="outline" className="text-xs">{feedback.trait_checked}</Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Expected</p>
+                          <p className="text-sm font-medium">{formatNumber(feedback.expected)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Actual</p>
+                          <p className="text-sm font-medium">{formatNumber(feedback.actual)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Deviation</p>
+                          <p className={`text-sm font-medium ${feedback.deviation > 0.2 ? "text-red-500" : "text-green-500"}`}>
+                            {formatNumber(feedback.deviation)}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Engagement</p>
+                          <p className="text-sm font-medium" style={{ color: getScoreColor(score) }}>
+                            {formatNumber(score, 1)}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Match</p>
+                          <Badge variant={feedback.match ? "default" : "destructive"} className="text-xs">
+                            {feedback.match ? "Yes" : "No"}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Level</p>
+                          <Badge
+                            variant={
+                              feedback.level === "critical_mismatch"
+                                ? "destructive"
+                                : feedback.level === "excellent" || feedback.level === "good"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="text-xs"
+                          >
+                            {feedback.level}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Recommendation</p>
+                          <div className="flex items-center gap-1">
+                            {getRecommendationStatus(score).icon}
+                            <span className="text-xs font-medium" style={{ color: getScoreColor(score) }}>
+                              {getRecommendationStatus(score).text}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Feedback Messages */}
+                      {feedback.feedback && feedback.feedback.length > 0 && (
+                        <div className="pt-3 border-t">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Suggestions:</p>
+                          <ul className="space-y-1">
+                            {feedback.feedback.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm">
+                                <span className="text-muted-foreground">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Mechanism Feedbacks */}
+                      {feedback.mechanismFeedbacks && feedback.mechanismFeedbacks.length > 0 && (
+                        <div className="pt-3 border-t">
+                          <p className="text-xs font-semibold text-muted-foreground mb-3">Mechanism Feedbacks:</p>
+                          <div className="space-y-3">
+                            {feedback.mechanismFeedbacks.map((mf: any, idx: number) => {
+                              // Parse the mechanism feedback if it's a string
+                              const mechanismData = typeof mf === "string" ? JSON.parse(mf) : mf
+
+                              return (
+                                <div key={idx} className="border rounded-lg p-3 bg-card space-y-3">
+                                  {/* Metric Type Header */}
+                                  {mechanismData.metricType && (
+                                    <div className="flex items-center gap-2 pb-2 border-b">
+                                      <Badge variant="outline" className="font-mono text-xs">
+                                        {mechanismData.metricType}
+                                      </Badge>
+                                    </div>
+                                  )}
+
+                                  {/* Individual Mechanism Feedbacks */}
+                                  {mechanismData.mechanismFeedbacks && mechanismData.mechanismFeedbacks.length > 0 && (
+                                    <div className="space-y-2">
+                                      {mechanismData.mechanismFeedbacks.map((item: any, itemIdx: number) => (
+                                        <div key={item.id || itemIdx} className="p-2 rounded bg-muted/50 space-y-1.5">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                            {item.awareness && (
+                                              <div className="flex items-start gap-2">
+                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Awareness:</span>
+                                                <span>{item.awareness}</span>
+                                              </div>
+                                            )}
+                                            {item.motivation && (
+                                              <div className="flex items-start gap-2">
+                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Motivation:</span>
+                                                <span>{item.motivation}</span>
+                                              </div>
+                                            )}
+                                            {item.capability && (
+                                              <div className="flex items-start gap-2">
+                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Capability:</span>
+                                                <span>{item.capability}</span>
+                                              </div>
+                                            )}
+                                            {item.opportunity && (
+                                              <div className="flex items-start gap-2">
+                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Opportunity:</span>
+                                                <span>{item.opportunity}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          {item.createdAt && (
+                                            <div className="text-xs text-muted-foreground pt-1 border-t">
+                                              {new Date(item.createdAt).toLocaleString()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

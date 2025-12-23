@@ -8,6 +8,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { OCEAN_DATA } from '@/lib/ocean-data';
 
+// Export constants for use in other components
+export const TRAITS = Object.keys(OCEAN_DATA) as Array<keyof typeof OCEAN_DATA>;
+
+export const BEHAVIORS = Object.values(OCEAN_DATA).flatMap(data => data.behaviors);
+
+export interface Demographic {
+  id: string;
+  ageRange: [number, number];
+  location: string;
+}
+
+export const DEMOGRAPHICS: Demographic[] = [
+  { id: 'young-urban', ageRange: [18, 30], location: 'Urban' },
+  { id: 'young-rural', ageRange: [18, 30], location: 'Rural' },
+  { id: 'middle-urban', ageRange: [31, 50], location: 'Urban' },
+  { id: 'middle-rural', ageRange: [31, 50], location: 'Rural' },
+  { id: 'senior-urban', ageRange: [51, 70], location: 'Urban' },
+  { id: 'senior-rural', ageRange: [51, 70], location: 'Rural' },
+];
+
 interface DraggableItemProps {
   id: string;
   children: React.ReactNode;
