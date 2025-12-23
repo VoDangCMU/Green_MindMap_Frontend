@@ -7,7 +7,7 @@ export default function DashboardPage() {
     <div className="p-6 lg:p-8 space-y-6">
       {/* Welcome Section */}
       <div>
-        <h1 className="text-3xl font-semibold text-foreground mb-2">Welcome back, Alex</h1>
+        <h1 className="text-3xl font-semibold text-foreground mb-2">Welcome back</h1>
         <p className="text-muted-foreground">Here's what's happening with your GreenMind system today.</p>
       </div>
 
