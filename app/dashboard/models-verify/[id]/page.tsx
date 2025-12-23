@@ -392,167 +392,170 @@ export default function ModelVerifyDetailPage() {
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Model Verification</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-bold">Model Verification</h1>
+          <p className="text-lg font-medium text-muted-foreground">
             Analyze engagement scores and recommendations
           </p>
         </div>
       </div>
 
-      {/* Section 1: Model Info Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Badge variant="outline" className="text-lg px-3 py-1">
-              {model.ocean}
-            </Badge>
-            <span>{getOceanFullName(model.ocean)}</span>
-          </CardTitle>
-          <CardDescription>Model Information & Current Strategy</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Behavior</p>
-              <p className="font-medium">{model.behavior}</p>
+      {/* Combined Section: Model Info and Chart in One Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Section 1: Model Info Header */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Badge variant="outline" className="text-xl px-4 py-1.5 font-bold">
+                {model.ocean}
+              </Badge>
+              <span className="font-bold">{getOceanFullName(model.ocean)}</span>
+            </CardTitle>
+            <CardDescription className="text-base font-medium">Model Information & Current Strategy</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-muted-foreground">Behavior</p>
+                <p className="text-lg font-bold">{model.behavior}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-muted-foreground">Target Age</p>
+                <p className="text-lg font-bold">{model.age}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-muted-foreground">Target Gender</p>
+                <p className="text-lg font-bold">{model.gender}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-muted-foreground">Location</p>
+                <p className="text-lg font-bold">{model.location}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-muted-foreground">Keywords (Current Strategy)</p>
+                <p className="text-lg font-bold">{model.keywords}</p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Target Age</p>
-              <p className="font-medium">{model.age}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Target Gender</p>
-              <p className="font-medium">{model.gender}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Location</p>
-              <p className="font-medium">{model.location}</p>
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <p className="text-sm text-muted-foreground">Keywords (Current Strategy)</p>
-              <p className="font-medium">{model.keywords}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Section 2: Scatter Plot Chart - Latest State per Segment */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Engagement Score Analysis (Latest State per Segment)</CardTitle>
-          <CardDescription>
-            Showing the most recent feedback state for each segment
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 60)}>
-              <ScatterChart
-                margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  type="number"
-                  dataKey="engagementDisplay"
-                  name="Engagement Score"
-                  domain={[0, 10]}
-                  tickCount={11}
-                  tickFormatter={(value) => `${10 - value}`}
-                  label={{
-                    value: "Engagement Score (10 → 0)",
-                    position: "bottom",
-                    offset: 0,
-                  }}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="engagement"
-                  name="Index"
-                  hide={true}
-                  domain={[-0.5, chartData.length - 0.5]}
-                />
-                <Tooltip content={<CustomTooltip />} />
-
-                {/* Red bar at position 10 (display 0) - Critical */}
-                <ReferenceLine
-                  x={0}
-                  stroke="#ef4444"
-                  strokeWidth={4}
-                  label={{
-                    value: "10",
-                    position: "top",
-                    fill: "#ef4444",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                />
-
-                {/* Blue bar at position 0 (display 10) - Best */}
-                <ReferenceLine
-                  x={10}
-                  stroke="#3b82f6"
-                  strokeWidth={4}
-                  label={{
-                    value: "0",
-                    position: "top",
-                    fill: "#3b82f6",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                />
-
-                <Scatter
-                  name="Engagement Points"
-                  data={chartData}
-                  fill="#8884d8"
+        {/* Section 2: Scatter Plot Chart - Latest State per Segment */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-bold">Engagement Score Analysis (Latest State per Segment)</CardTitle>
+            <CardDescription className="text-base font-medium">
+              Showing the most recent feedback state for each segment
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 60)}>
+                <ScatterChart
+                  margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
                 >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={getScoreColor(entry.engagementOriginal)}
-                      stroke={getScoreColor(entry.engagementOriginal)}
-                      strokeWidth={2}
-                      r={30}
-                    />
-                  ))}
-                  <LabelList
-                    dataKey="subContext"
-                    position="right"
-                    offset={30}
-                    style={{ fontSize: 13, fontWeight: 500 }}
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    type="number"
+                    dataKey="engagementDisplay"
+                    name="Engagement Score"
+                    domain={[0, 10]}
+                    tickCount={11}
+                    tickFormatter={(value) => `${10 - value}`}
+                    label={{
+                      value: "Engagement Score (10 → 0)",
+                      position: "bottom",
+                      offset: 0,
+                    }}
                   />
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              No feedback data available for chart
-            </div>
-          )}
+                  <YAxis
+                    type="number"
+                    dataKey="engagement"
+                    name="Index"
+                    hide={true}
+                    domain={[-0.5, chartData.length - 0.5]}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
 
-          {/* Legend for colors */}
-          <div className="flex flex-wrap gap-4 mt-4 justify-center">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-green-500" />
-              <span className="text-sm">Score ≥ 7: Keep Strategy</span>
+                  {/* Red bar at position 10 (display 0) - Critical */}
+                  <ReferenceLine
+                    x={0}
+                    stroke="#ef4444"
+                    strokeWidth={4}
+                    label={{
+                      value: "10",
+                      position: "top",
+                      fill: "#ef4444",
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  />
+
+                  {/* Blue bar at position 0 (display 10) - Best */}
+                  <ReferenceLine
+                    x={10}
+                    stroke="#3b82f6"
+                    strokeWidth={4}
+                    label={{
+                      value: "0",
+                      position: "top",
+                      fill: "#3b82f6",
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  />
+
+                  <Scatter
+                    name="Engagement Points"
+                    data={chartData}
+                    fill="#8884d8"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={getScoreColor(entry.engagementOriginal)}
+                        stroke={getScoreColor(entry.engagementOriginal)}
+                        strokeWidth={2}
+                        r={35}
+                      />
+                    ))}
+                    <LabelList
+                      dataKey="subContext"
+                      position="right"
+                      offset={30}
+                      style={{ fontSize: 15, fontWeight: 600 }}
+                    />
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground text-lg font-medium">
+                No feedback data available for chart
+              </div>
+            )}
+
+            {/* Legend for colors */}
+            <div className="flex flex-wrap gap-4 mt-4 justify-center">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-green-500" />
+                <span className="text-base font-semibold">Score ≥ 7: Keep Strategy</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-yellow-500" />
+                <span className="text-base font-semibold">Score 5-7: Optimize</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-red-500" />
+                <span className="text-base font-semibold">Score &lt; 5: Change Strategy</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-yellow-500" />
-              <span className="text-sm">Score 5-7: Optimize</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-red-500" />
-              <span className="text-sm">Score &lt; 5: Change Strategy</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Section 3: Grouped Data Table by Segment */}
       <Card>
         <CardHeader>
-          <CardTitle>Feedback Details by Segment</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl font-bold">Feedback Details by Segment</CardTitle>
+          <CardDescription className="text-base font-medium">
             Each row represents a segment with its latest feedback state. Click View to see all feedbacks.
           </CardDescription>
         </CardHeader>
@@ -561,21 +564,21 @@ export default function ModelVerifyDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Segment</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Gender</TableHead>
-                  <TableHead>Latest Score</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>AI Recommendation</TableHead>
-                  <TableHead>Feedbacks</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="font-bold text-base">Segment</TableHead>
+                  <TableHead className="font-bold text-base">Age</TableHead>
+                  <TableHead className="font-bold text-base">Location</TableHead>
+                  <TableHead className="font-bold text-base">Gender</TableHead>
+                  <TableHead className="font-bold text-base">Latest Score</TableHead>
+                  <TableHead className="font-bold text-base">Level</TableHead>
+                  <TableHead className="font-bold text-base">AI Recommendation</TableHead>
+                  <TableHead className="font-bold text-base">Feedbacks</TableHead>
+                  <TableHead className="font-bold text-base">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {groupedFeedbacks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground text-base font-medium">
                       No feedbacks found
                     </TableCell>
                   </TableRow>
@@ -587,15 +590,15 @@ export default function ModelVerifyDetailPage() {
 
                     return (
                       <TableRow key={group.segmentId}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-bold text-base">
                           {latestFeedback.segment?.name || `${latestFeedback.segment?.ageRange}-${latestFeedback.segment?.location}-${latestFeedback.segment?.gender}`}
                         </TableCell>
-                        <TableCell>{latestFeedback.segment?.ageRange || "-"}</TableCell>
-                        <TableCell>{latestFeedback.segment?.location || "-"}</TableCell>
-                        <TableCell>{latestFeedback.segment?.gender || "-"}</TableCell>
+                        <TableCell className="text-base font-medium">{latestFeedback.segment?.ageRange || "-"}</TableCell>
+                        <TableCell className="text-base font-medium">{latestFeedback.segment?.location || "-"}</TableCell>
+                        <TableCell className="text-base font-medium">{latestFeedback.segment?.gender || "-"}</TableCell>
                         <TableCell>
                           <span
-                            className="font-semibold"
+                            className="font-bold text-lg"
                             style={{ color: getScoreColor(score) }}
                           >
                             {score.toFixed(1)}
@@ -610,6 +613,7 @@ export default function ModelVerifyDetailPage() {
                                 ? "default"
                                 : "secondary"
                             }
+                            className="text-sm font-bold"
                           >
                             {latestFeedback.level}
                           </Badge>
@@ -617,13 +621,13 @@ export default function ModelVerifyDetailPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {status.icon}
-                            <Badge variant={status.variant} className={status.className}>
+                            <Badge variant={status.variant} className={`${status.className} text-sm font-bold`}>
                               {status.text}
                             </Badge>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="text-sm font-bold">
                             {group.totalCount} {group.totalCount === 1 ? 'feedback' : 'feedbacks'}
                           </Badge>
                         </TableCell>
@@ -632,6 +636,7 @@ export default function ModelVerifyDetailPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleViewSegmentFeedbacks(group.feedbacks)}
+                            className="font-semibold"
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             View
@@ -651,11 +656,11 @@ export default function ModelVerifyDetailPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Eye className="h-5 w-5" />
               All Feedbacks for Segment
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-base font-medium">
               {selectedSegmentFeedbacks && selectedSegmentFeedbacks.length > 0
                 ? `${selectedSegmentFeedbacks[0].segment?.name || "Segment"} - Total: ${selectedSegmentFeedbacks.length} feedbacks`
                 : "Segment feedback information"}
@@ -667,26 +672,26 @@ export default function ModelVerifyDetailPage() {
               {/* Segment Info */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Segment Name</p>
-                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.name || "-"}</p>
+                  <p className="text-base font-bold text-muted-foreground">Segment Name</p>
+                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.name || "-"}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.location || "-"}</p>
+                  <p className="text-base font-bold text-muted-foreground">Location</p>
+                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.location || "-"}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Age Range</p>
-                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.ageRange || "-"}</p>
+                  <p className="text-base font-bold text-muted-foreground">Age Range</p>
+                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.ageRange || "-"}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Gender</p>
-                  <p className="font-medium">{selectedSegmentFeedbacks[0].segment?.gender || "-"}</p>
+                  <p className="text-base font-bold text-muted-foreground">Gender</p>
+                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.gender || "-"}</p>
                 </div>
               </div>
 
               {/* All Feedbacks for this Segment */}
               <div className="space-y-4">
-                <h4 className="font-semibold text-lg">Feedback History</h4>
+                <h4 className="font-bold text-xl">Feedback History</h4>
 
                 {selectedSegmentFeedbacks.map((feedback, index) => {
                   const score = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
@@ -694,12 +699,12 @@ export default function ModelVerifyDetailPage() {
                   return (
                     <div key={feedback.id} className="border rounded-lg p-4 space-y-4">
                       <div className="flex items-center justify-between">
-                        <h5 className="font-semibold">
+                        <h5 className="font-bold text-lg">
                           Feedback #{selectedSegmentFeedbacks.length - index}
-                          {index === 0 && <Badge className="ml-2" variant="default">Latest</Badge>}
+                          {index === 0 && <Badge className="ml-2 font-bold" variant="default">Latest</Badge>}
                         </h5>
                         {feedback.created_at && (
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-base font-semibold text-muted-foreground">
                             {new Date(feedback.created_at).toLocaleString()}
                           </span>
                         )}
@@ -708,37 +713,37 @@ export default function ModelVerifyDetailPage() {
                       {/* Score Metrics */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Trait Checked</p>
-                          <Badge variant="outline" className="text-xs">{feedback.trait_checked}</Badge>
+                          <p className="text-sm font-bold text-muted-foreground">Trait Checked</p>
+                          <Badge variant="outline" className="text-sm font-bold">{feedback.trait_checked}</Badge>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Expected</p>
-                          <p className="text-sm font-medium">{formatNumber(feedback.expected)}</p>
+                          <p className="text-sm font-bold text-muted-foreground">Expected</p>
+                          <p className="text-base font-bold">{formatNumber(feedback.expected)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Actual</p>
-                          <p className="text-sm font-medium">{formatNumber(feedback.actual)}</p>
+                          <p className="text-sm font-bold text-muted-foreground">Actual</p>
+                          <p className="text-base font-bold">{formatNumber(feedback.actual)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Deviation</p>
-                          <p className={`text-sm font-medium ${feedback.deviation > 0.2 ? "text-red-500" : "text-green-500"}`}>
+                          <p className="text-sm font-bold text-muted-foreground">Deviation</p>
+                          <p className={`text-base font-bold ${feedback.deviation > 0.2 ? "text-red-500" : "text-green-500"}`}>
                             {formatNumber(feedback.deviation)}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Engagement</p>
-                          <p className="text-sm font-medium" style={{ color: getScoreColor(score) }}>
+                          <p className="text-sm font-bold text-muted-foreground">Engagement</p>
+                          <p className="text-base font-bold" style={{ color: getScoreColor(score) }}>
                             {formatNumber(score, 1)}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Match</p>
-                          <Badge variant={feedback.match ? "default" : "destructive"} className="text-xs">
+                          <p className="text-sm font-bold text-muted-foreground">Match</p>
+                          <Badge variant={feedback.match ? "default" : "destructive"} className="text-sm font-bold">
                             {feedback.match ? "Yes" : "No"}
                           </Badge>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Level</p>
+                          <p className="text-sm font-bold text-muted-foreground">Level</p>
                           <Badge
                             variant={
                               feedback.level === "critical_mismatch"
@@ -747,16 +752,16 @@ export default function ModelVerifyDetailPage() {
                                 ? "default"
                                 : "secondary"
                             }
-                            className="text-xs"
+                            className="text-sm font-bold"
                           >
                             {feedback.level}
                           </Badge>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Recommendation</p>
+                          <p className="text-sm font-bold text-muted-foreground">Recommendation</p>
                           <div className="flex items-center gap-1">
                             {getRecommendationStatus(score).icon}
-                            <span className="text-xs font-medium" style={{ color: getScoreColor(score) }}>
+                            <span className="text-sm font-bold" style={{ color: getScoreColor(score) }}>
                               {getRecommendationStatus(score).text}
                             </span>
                           </div>
@@ -766,10 +771,10 @@ export default function ModelVerifyDetailPage() {
                       {/* Feedback Messages */}
                       {feedback.feedback && feedback.feedback.length > 0 && (
                         <div className="pt-3 border-t">
-                          <p className="text-xs font-semibold text-muted-foreground mb-2">Suggestions:</p>
+                          <p className="text-sm font-bold text-muted-foreground mb-2">Suggestions:</p>
                           <ul className="space-y-1">
                             {feedback.feedback.map((item, idx) => (
-                              <li key={idx} className="flex items-start gap-2 text-sm">
+                              <li key={idx} className="flex items-start gap-2 text-base font-medium">
                                 <span className="text-muted-foreground">•</span>
                                 <span>{item}</span>
                               </li>
@@ -781,7 +786,7 @@ export default function ModelVerifyDetailPage() {
                       {/* Mechanism Feedbacks */}
                       {feedback.mechanismFeedbacks && feedback.mechanismFeedbacks.length > 0 && (
                         <div className="pt-3 border-t">
-                          <p className="text-xs font-semibold text-muted-foreground mb-3">Mechanism Feedbacks:</p>
+                          <p className="text-sm font-bold text-muted-foreground mb-3">Mechanism Feedbacks:</p>
                           <div className="space-y-3">
                             {feedback.mechanismFeedbacks.map((mf: any, idx: number) => {
                               // Parse the mechanism feedback if it's a string
@@ -792,7 +797,7 @@ export default function ModelVerifyDetailPage() {
                                   {/* Metric Type Header */}
                                   {mechanismData.metricType && (
                                     <div className="flex items-center gap-2 pb-2 border-b">
-                                      <Badge variant="outline" className="font-mono text-xs">
+                                      <Badge variant="outline" className="font-mono text-sm font-bold">
                                         {mechanismData.metricType}
                                       </Badge>
                                     </div>
@@ -803,34 +808,34 @@ export default function ModelVerifyDetailPage() {
                                     <div className="space-y-2">
                                       {mechanismData.mechanismFeedbacks.map((item: any, itemIdx: number) => (
                                         <div key={item.id || itemIdx} className="p-2 rounded bg-muted/50 space-y-1.5">
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                                             {item.awareness && (
                                               <div className="flex items-start gap-2">
-                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Awareness:</span>
-                                                <span>{item.awareness}</span>
+                                                <span className="font-bold text-muted-foreground min-w-[80px]">Awareness:</span>
+                                                <span className="font-medium">{item.awareness}</span>
                                               </div>
                                             )}
                                             {item.motivation && (
                                               <div className="flex items-start gap-2">
-                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Motivation:</span>
-                                                <span>{item.motivation}</span>
+                                                <span className="font-bold text-muted-foreground min-w-[80px]">Motivation:</span>
+                                                <span className="font-medium">{item.motivation}</span>
                                               </div>
                                             )}
                                             {item.capability && (
                                               <div className="flex items-start gap-2">
-                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Capability:</span>
-                                                <span>{item.capability}</span>
+                                                <span className="font-bold text-muted-foreground min-w-[80px]">Capability:</span>
+                                                <span className="font-medium">{item.capability}</span>
                                               </div>
                                             )}
                                             {item.opportunity && (
                                               <div className="flex items-start gap-2">
-                                                <span className="font-semibold text-muted-foreground min-w-[80px]">Opportunity:</span>
-                                                <span>{item.opportunity}</span>
+                                                <span className="font-bold text-muted-foreground min-w-[80px]">Opportunity:</span>
+                                                <span className="font-medium">{item.opportunity}</span>
                                               </div>
                                             )}
                                           </div>
                                           {item.createdAt && (
-                                            <div className="text-xs text-muted-foreground pt-1 border-t">
+                                            <div className="text-sm font-semibold text-muted-foreground pt-1 border-t">
                                               {new Date(item.createdAt).toLocaleString()}
                                             </div>
                                           )}
