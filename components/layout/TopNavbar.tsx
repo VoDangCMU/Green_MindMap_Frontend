@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, TreePine, FileText, Users, MessageSquare, LogOut, User } from "lucide-react"
+import { LayoutDashboard, TreePine, FileText, Users, MessageSquare, LogOut, User, Brain, CheckCircle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,15 +33,36 @@ const navItems = [
     icon: MessageSquare,
   },
   {
+    title: "Question Manager",
+    href: "/dashboard/questions-manage",
+    icon: FileText,
+  },
+  {
     title: "Survey Manager",
     href: "/dashboard/survey",
     icon: FileText,
   },
   {
-    title: "Users & Results",
-    href: "/dashboard/users",
+    title: "Survey Results",
+    href: "/dashboard/survey-results",
     icon: Users,
   },
+  {
+    title: "Models Verify",
+    href: "/dashboard/models-verify",
+    icon: CheckCircle,
+  },
+  {
+    title: "Daily Verify",
+    href: "/dashboard/daily-feedback",
+    icon: MessageSquare,
+  },
+  {
+    title: "User Management",
+    href: "/dashboard/users-ocean",
+    icon: Brain,
+  },
+
 ]
 
 export function TopNavbar() {

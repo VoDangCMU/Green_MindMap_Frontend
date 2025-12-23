@@ -10,51 +10,41 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { CheckCircle2, Loader2 } from "lucide-react"
-import { getAllQuestions } from "@/lib/auth"
-import { attachQuestions } from "@/lib/survey"
+import { attachQuestionSet } from "@/lib/survey"
+import { getMyQuestionSets } from "@/lib/question-set"
 
 interface QuestionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   scenarioId: string
-  selectedQuestions: Array<{ id: string; question: string }>
   onSuccess?: () => void
 }
 
-export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestions, onSuccess }: QuestionModalProps) {
+export function QuestionModal({ open, onOpenChange, scenarioId, onSuccess }: QuestionModalProps) {
   const { toast } = useToast()
-  const [selected, setSelected] = useState<string[]>(selectedQuestions.map(q => q.id))
-  const [questions, setQuestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [questionSets, setQuestionSets] = useState<any[]>([])
+  const [selectedSetId, setSelectedSetId] = useState<string>("")
 
-  // Load questions from API when modal opens
   useEffect(() => {
     if (open) {
-      loadQuestionsFromAPI()
+      loadQuestionSets()
     }
   }, [open])
 
-  const loadQuestionsFromAPI = async () => {
+  const loadQuestionSets = async () => {
     setIsLoading(true)
     try {
-      console.log('🔍 Loading questions from API for modal...')
-      const response = await getAllQuestions()
-
-      // Extract questions from response (handle both array and object response)
-      const questionsData = response.data || response || []
-      setQuestions(questionsData)
-
-      console.log('✅ Questions loaded for modal:', questionsData)
+      const response = await getMyQuestionSets()
+      const sets = response?.data || response || []
+      setQuestionSets(Array.isArray(sets) ? sets : [])
     } catch (error) {
-      console.error('Error loading questions for modal:', error)
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách câu hỏi",
+        title: "Error",
+        description: "Failed to load question sets",
         variant: "destructive",
       })
     } finally {
@@ -62,24 +52,42 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
     }
   }
 
-  const handleToggle = (questionId: string) => {
-    setSelected((prev) => (prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]))
-  }
+
 
   const handleConfirm = async () => {
+    if (!selectedSetId) {
+      toast({ title: "No Set Selected", description: "Please select a question set.", variant: "destructive" })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      await attachQuestions(scenarioId, selected)
+      const response = await attachQuestionSet(scenarioId, selectedSetId)
+      console.log('Attach response:', response)
+      console.log('Response data:', response.data)
+      console.log('QuestionSetId in response:', response.data?.questionSetId)
+
+      const selectedSet = questionSets.find(s => s.id === selectedSetId)
+      const questionCount = selectedSet?.items?.length || selectedSet?.questionIds?.length || 0
       toast({
-        title: "Questions Attached",
-        description: `${selected.length} question(s) have been attached to this scenario.`,
+        title: "Question Set Attached",
+        description: `Successfully attached "${selectedSet?.name}" with ${questionCount} question(s).`,
       })
+      setSelectedSetId("")
+
+      // Small delay to ensure backend is updated
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
       onOpenChange(false)
-      if (onSuccess) onSuccess()
-    } catch (error) {
+      if (onSuccess) {
+        console.log('Calling onSuccess callback')
+        onSuccess()
+      }
+    } catch (error: any) {
+      console.error('Attach error:', error)
       toast({
         title: "Error",
-        description: "Failed to attach questions",
+        description: "Failed to attach question set",
         variant: "destructive",
       })
     } finally {
@@ -91,42 +99,51 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl">Select Survey Questions</DialogTitle>
-          <DialogDescription>Choose one or more questions to attach to this demographic scenario.</DialogDescription>
+          <DialogTitle className="text-xl">Select Question Set</DialogTitle>
+          <DialogDescription>Choose a question set to attach to this demographic scenario.</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[400px] space-y-3 overflow-y-auto py-4">
+        <div className="space-y-3">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading questions...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : questions.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 py-12 text-center">
-              <p className="text-sm text-muted-foreground">
-                No questions available. Please try again.
-              </p>
+          ) : questionSets.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">
+              No question sets available. Create sets in Question Manager first.
             </div>
           ) : (
-            questions.map((question, index) => (
-              <div
-                key={question.id || index}
-                className="flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-gray-50/50"
-              >
-                <Checkbox
-                  id={question.id || `question-${index}`}
-                  checked={selected.includes(question.id || `question-${index}`)}
-                  onCheckedChange={() => handleToggle(question.id || `question-${index}`)}
-                  className="mt-1"
-                />
-                <Label htmlFor={question.id || `question-${index}`} className="flex-1 cursor-pointer text-base leading-relaxed">
-                  {question.text || question.question || question.filled_prompt || `Question ${index + 1}`}
-                </Label>
-                {selected.includes(question.id || `question-${index}`) && (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-            ))
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {questionSets.map((set) => {
+                const questionCount = set.items?.length || set.questionIds?.length || 0
+                const isSelected = selectedSetId === set.id
+                return (
+                  <div
+                    key={set.id}
+                    onClick={() => setSelectedSetId(set.id)}
+                    className={`cursor-pointer border rounded-lg p-4 transition-all ${isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                          <div className="font-semibold text-sm">{set.name}</div>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {set.description || "No description"}
+                        </div>
+                      </div>
+                      <div className="text-xs font-medium text-muted-foreground bg-gray-100 px-2 py-1 rounded">
+                        {questionCount} questions
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 
@@ -134,8 +151,15 @@ export function QuestionModal({ open, onOpenChange, scenarioId, selectedQuestion
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={selected.length === 0 || isLoading || isSubmitting}>
-            {isSubmitting ? "Attaching..." : `Confirm (${selected.length} selected)`}
+          <Button onClick={handleConfirm} disabled={!selectedSetId || isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Attaching...
+              </>
+            ) : (
+              "Confirm Selection"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

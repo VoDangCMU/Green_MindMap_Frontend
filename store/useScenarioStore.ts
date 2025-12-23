@@ -170,15 +170,6 @@ export const useScenarioStore = create<ScenarioStore>((set, get) => ({
       const shuffled = [...eligibleUsers].sort(() => Math.random() - 0.5)
       const assigned = shuffled.slice(0, numToAssign)
 
-      console.log("[v0] Simulation Result:", {
-        scenarioId: scenario.id,
-        ageRange: scenario.demographic.ageRange,
-        location: scenario.demographic.location,
-        percentage: scenario.percentage * 100,
-        questions: scenario.questions,
-        assignedUsers: assigned.map((u) => u.id),
-      })
-
       const updatedScenarios = state.scenarios.map((s) =>
         s.id === scenarioId
           ? {

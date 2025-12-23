@@ -61,17 +61,13 @@ export default function TreeModelBuilder() {
         onDragCancel={handleDragCancel}
       >
         <div className="flex gap-6">
-          {/* Left: Toolbox */}
           <TreeToolbox />
 
-          {/* Center: Canvas */}
           <TreeCanvas />
 
-          {/* Right: Detail Editor */}
           <DetailEditor />
         </div>
 
-        {/* Drag Overlay */}
         <DragOverlay>
           {activeId && draggedItem ? (
             <Card className="p-3 bg-white shadow-lg border-2 border-blue-500 opacity-90">

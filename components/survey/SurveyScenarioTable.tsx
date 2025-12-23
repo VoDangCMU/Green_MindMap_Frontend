@@ -22,19 +22,20 @@ interface ScenarioFromAPI {
   maxAge: number
   percentage: number
   status: "draft" | "sent"
-  location: {
+  location?: string
+  address?: string
+  questionSetId?: string
+  questionSet?: {
     id: string
-    latitude: number
-    longitude: number
-    address: string
-    createdAt: string
-    updatedAt: string
-  } | null
-  questions: Array<{
+    name: string
+    description?: string
+  }
+  questions?: Array<{
     id: string
     question: string
   }>
-  gender?: string
+  gender?: string | null
+  simulatedSurvey?: any
   createdAt: string
   updatedAt: string
 }
@@ -45,6 +46,7 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("")
   const [scenarios, setScenarios] = useState<ScenarioFromAPI[]>([])
   const [loading, setLoading] = useState(false)
+  const [errorScenarios, setErrorScenarios] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     fetchScenarios()
@@ -70,10 +72,10 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
   const handleSimulate = async (scenarioId: string) => {
     const scenario = scenarios.find((s) => s.id === scenarioId)
 
-    if (!scenario?.questions || scenario.questions.length === 0) {
+    if (!scenario?.questionSet?.id) {
       toast({
-        title: "No Questions Selected",
-        description: "Please select at least one question before simulating.",
+        title: "No Question Set Selected",
+        description: "Please select a question set before simulating.",
         variant: "destructive",
       })
       return
@@ -81,7 +83,6 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
 
     try {
       const response = await simulateSurveyScenario(scenarioId)
-      console.log("Simulate response:", response)
 
       await fetchScenarios()
 
@@ -96,11 +97,27 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
         title: "Survey Distributed",
         description: "Survey has been sent to assigned users. Check results below.",
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Simulate error:", error)
+
+      // Extract error message from different error formats
+      let errorMessage = "Failed to simulate scenario"
+
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
+
+      // Mark scenario as error and store error message
+      setErrorScenarios(prev => ({
+        ...prev,
+        [scenarioId]: errorMessage
+      }))
+
       toast({
         title: "Error",
-        description: "Failed to simulate scenario",
+        description: errorMessage,
         variant: "destructive",
       })
     }
@@ -110,6 +127,14 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
     try {
       await deleteSurveyScenario(scenarioId)
       await fetchScenarios()
+
+      // Clear error state for this scenario
+      setErrorScenarios(prev => {
+        const updated = { ...prev }
+        delete updated[scenarioId]
+        return updated
+      })
+
       if (onScenarioDeleted) {
         onScenarioDeleted(scenarioId)
       }
@@ -147,13 +172,20 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
       return
     }
 
-    console.log("Viewing result for scenario:", scenario)
     onViewResult(scenarioId, scenario)
   }
 
   const handleSelectQuestions = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId)
     setModalOpen(true)
+  }
+
+  const handleModalOpenChange = (open: boolean) => {
+    setModalOpen(open)
+    if (!open) {
+      // Refresh scenarios when modal closes (after set is attached)
+      fetchScenarios()
+    }
   }
 
   const handleExport = () => {
@@ -212,87 +244,163 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scenarios.map((scenario, index) => (
-                    <TableRow key={scenario.id} className="transition-colors hover:bg-gray-50/50">
-                      <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                      <TableCell className="font-semibold">
-                        {scenario.minAge}–{scenario.maxAge}
-                      </TableCell>
-                      <TableCell className="font-medium">  {scenario.gender
-                        ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
-                        : "All"}</TableCell>
-                      <TableCell className="font-medium">{scenario.location?.address || "N/A"}</TableCell>
-                      <TableCell className="font-semibold text-blue-600">
-                        {scenario.percentage}%
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-medium">
-                          {scenario.questions.length} selected
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={scenario.status === "sent" ? "default" : "secondary"}
-                          className="font-medium shadow-sm"
-                        >
-                          {scenario.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {scenario.status === "draft" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSelectQuestions(scenario.id)}
-                                className="shadow-sm"
-                              >
-                                <ListChecks className="mr-2 h-4 w-4" />
-                                Select Qs
-                              </Button>
-                              {/* Disable Simulate when no questions selected and show tooltip */}
-                              {(!scenario.questions || scenario.questions.length === 0) ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button size="sm" disabled className="shadow-sm">
-                                      <Send className="mr-2 h-4 w-4" />
-                                      Simulate
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Please select at least one question first</TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <Button size="sm" onClick={() => handleSimulate(scenario.id)} className="shadow-sm">
-                                  <Send className="mr-2 h-4 w-4" />
-                                  Simulate
-                                </Button>
-                              )}
-                            </>
+                  {scenarios.map((scenario, index) => {
+                    const hasError = errorScenarios[scenario.id]
+                    return (
+                      <TableRow
+                        key={scenario.id}
+                        className={`transition-colors ${hasError
+                          ? "bg-red-50 hover:bg-red-100/80 border-l-4 border-l-red-500"
+                          : "hover:bg-gray-50/50"
+                          }`}
+                      >
+                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="font-semibold">
+                          {scenario.minAge}–{scenario.maxAge}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {scenario.gender
+                            ? scenario.gender.charAt(0).toUpperCase() + scenario.gender.slice(1)
+                            : "All"}
+                        </TableCell>
+                        <TableCell>
+                          {scenario.address || scenario.location ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex flex-wrap gap-1 max-w-xs cursor-help">
+                                  {(() => {
+                                    const locations = (Array.isArray(scenario.address) ? scenario.address : Array.isArray(scenario.location) ? scenario.location : []) as string[];
+                                    return (
+                                      <>
+                                        {locations.slice(0, 2).map((addr: string) => (
+                                          <Badge key={addr} variant="outline" className="text-xs font-medium">
+                                            {addr.split(",")[0]}
+                                          </Badge>
+                                        ))}
+                                        {locations.length > 2 && (
+                                          <Badge variant="secondary" className="text-xs font-medium bg-blue-100 text-blue-700">
+                                            +{locations.length - 2} more
+                                          </Badge>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg shadow-lg">
+                                <div className="space-y-2">
+                                  <div className="text-xs font-semibold text-slate-300 tracking-wide">Full Locations Selected</div>
+                                  <div className="border-t border-slate-600 pt-2 space-y-1">
+                                    {(() => {
+                                      const locations = Array.isArray(scenario.address) ? scenario.address : Array.isArray(scenario.location) ? scenario.location : [];
+                                      return locations.map((addr: string) => (
+                                        <div key={addr} className="text-xs text-slate-200 py-1">{addr}</div>
+                                      ));
+                                    })()}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground">N/A</span>
                           )}
-                          {scenario.status === "sent" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewResult(scenario.id)}
-                              className="shadow-sm"
+                        </TableCell>
+                        <TableCell className="font-semibold text-blue-600">
+                          {scenario.percentage}%
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-medium max-w-xs truncate">
+                            {scenario.questionSet?.name || "No Set"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {hasError ? (
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="destructive" className="font-medium shadow-sm">
+                                Error
+                              </Badge>
+                              <span className="text-xs text-red-700 font-medium">{hasError}</span>
+                            </div>
+                          ) : (
+                            <Badge
+                              variant={scenario.status === "sent" ? "default" : "secondary"}
+                              className="font-medium shadow-sm"
                             >
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Result
-                            </Button>
+                              {scenario.status}
+                            </Badge>
                           )}
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(scenario.id)}
-                            className="shadow-sm"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {hasError ? (
+                              <>
+                                <span className="text-xs text-red-600 font-semibold">Delete only</span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDelete(scenario.id)}
+                                  className="shadow-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                {scenario.status === "draft" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleSelectQuestions(scenario.id)}
+                                      className="shadow-sm"
+                                    >
+                                      <ListChecks className="mr-2 h-4 w-4" />
+                                      Select Set Questions
+                                    </Button>
+                                    {(!scenario.questionSet?.id) ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="sm" disabled className="shadow-sm">
+                                            <Send className="mr-2 h-4 w-4" />
+                                            Simulate
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Please select at least one question first</TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <Button size="sm" onClick={() => handleSimulate(scenario.id)} className="shadow-sm">
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Simulate
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                                {scenario.status === "sent" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleViewResult(scenario.id)}
+                                    className="shadow-sm"
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Result
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDelete(scenario.id)}
+                                  className="shadow-sm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -303,9 +411,8 @@ export function SurveyScenarioTable({ onViewResult, onScenarioDeleted }: SurveyS
       {currentScenario && (
         <QuestionModal
           open={modalOpen}
-          onOpenChange={setModalOpen}
+          onOpenChange={handleModalOpenChange}
           scenarioId={selectedScenarioId}
-          selectedQuestions={currentScenario.questions}
           onSuccess={fetchScenarios}
         />
       )}
