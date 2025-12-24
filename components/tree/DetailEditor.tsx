@@ -76,8 +76,8 @@ export default function DetailEditor() {
   // Get current selected gender option
   const getSelectedGenderOption = () => {
     if (context.population.gender.length === 2 &&
-        context.population.gender.includes('male') &&
-        context.population.gender.includes('female')) {
+      context.population.gender.includes('male') &&
+      context.population.gender.includes('female')) {
       return 'all';
     }
     if (context.population.gender.length === 1) {
@@ -181,7 +181,7 @@ export default function DetailEditor() {
       router.push('/dashboard/questions');
     } catch (error) {
       console.error('Error saving model:', error);
-      toast.error('❌ An error occurred while saving the model. Please try again!', {
+      toast.error("An error occurred while saving the model. Please try again!", {
         duration: 4000,
         style: {
           background: '#EF4444',
@@ -247,16 +247,14 @@ export default function DetailEditor() {
                   return (
                     <div
                       key={option.value}
-                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                        isSelected
+                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${isSelected
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'hover:bg-muted'
-                      }`}
+                        }`}
                       onClick={() => handleGenderSelect(option.value)}
                     >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        isSelected ? 'border-primary-foreground' : 'border-muted-foreground'
-                      }`}>
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary-foreground' : 'border-muted-foreground'
+                        }`}>
                         {isSelected && (
                           <div className="w-2 h-2 rounded-full bg-primary-foreground" />
                         )}

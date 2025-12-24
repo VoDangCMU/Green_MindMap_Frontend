@@ -52,11 +52,12 @@ const navItems = [
     href: "/dashboard/models-verify",
     icon: CheckCircle,
   },
-  {
-    title: "Daily Verify",
-    href: "/dashboard/daily-feedback",
-    icon: MessageSquare,
-  },
+  // Temporarily hidden - Daily Verify
+  // {
+  //   title: "Daily Verify",
+  //   href: "/dashboard/daily-feedback",
+  //   icon: MessageSquare,
+  // },
   {
     title: "User Management",
     href: "/dashboard/users-ocean",

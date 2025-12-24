@@ -277,19 +277,35 @@ export default function ModelVerifyDetailPage() {
       acc[segmentId].feedbacks.push(feedback)
       acc[segmentId].totalCount++
 
-      // Update latest feedback (assuming latest is last in array or has newest created_at)
-      if (feedback.created_at && acc[segmentId].latestFeedback.created_at) {
-        if (new Date(feedback.created_at) > new Date(acc[segmentId].latestFeedback.created_at)) {
+      // Update latest feedback based on created_at - use the newest one
+      const currentLatest = acc[segmentId].latestFeedback
+      if (feedback.created_at && currentLatest.created_at) {
+        // Both have created_at - compare dates
+        if (new Date(feedback.created_at) > new Date(currentLatest.created_at)) {
           acc[segmentId].latestFeedback = feedback
         }
-      } else {
-        // If no created_at, take the last one
+      } else if (feedback.created_at && !currentLatest.created_at) {
+        // New feedback has date, current doesn't - use the one with date
         acc[segmentId].latestFeedback = feedback
       }
+      // If new feedback doesn't have created_at but current does, keep current
+      // If neither has created_at, keep the first one (don't overwrite)
 
       return acc
     }, {} as Record<string, GroupedFeedback>)
   )
+
+  // Helper function to extract age from segment name
+  // Format: "Location_Age_Gender" (e.g., "Da Nang, Vietnam_12_male" or "Hue_30_female")
+  const extractAgeFromSegmentName = (segmentName: string): string => {
+    if (!segmentName) return "-"
+    const parts = segmentName.split("_")
+    if (parts.length >= 2) {
+      const agePart = parts[parts.length - 2] // Age is second to last
+      return agePart || "-"
+    }
+    return "-"
+  }
 
   const handleViewSegmentFeedbacks = (segmentFeedbacks: Feedback[]) => {
     setSelectedSegmentFeedbacks(segmentFeedbacks)
@@ -593,7 +609,7 @@ export default function ModelVerifyDetailPage() {
                         <TableCell className="font-bold text-base">
                           {latestFeedback.segment?.name || `${latestFeedback.segment?.ageRange}-${latestFeedback.segment?.location}-${latestFeedback.segment?.gender}`}
                         </TableCell>
-                        <TableCell className="text-base font-medium">{latestFeedback.segment?.ageRange || "-"}</TableCell>
+                        <TableCell className="text-base font-medium">{extractAgeFromSegmentName(latestFeedback.segment?.name || "")}</TableCell>
                         <TableCell className="text-base font-medium">{latestFeedback.segment?.location || "-"}</TableCell>
                         <TableCell className="text-base font-medium">{latestFeedback.segment?.gender || "-"}</TableCell>
                         <TableCell>
@@ -610,8 +626,8 @@ export default function ModelVerifyDetailPage() {
                               latestFeedback.level === "critical_mismatch"
                                 ? "destructive"
                                 : latestFeedback.level === "excellent" || latestFeedback.level === "good" || latestFeedback.match
-                                ? "default"
-                                : "secondary"
+                                  ? "default"
+                                  : "secondary"
                             }
                             className="text-sm font-bold"
                           >
@@ -654,7 +670,7 @@ export default function ModelVerifyDetailPage() {
 
       {/* Segment Feedbacks Modal - Shows all feedbacks for selected segment */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[66vw] min-w-[66vw] max-w-[66vw] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Eye className="h-5 w-5" />
@@ -667,194 +683,284 @@ export default function ModelVerifyDetailPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedSegmentFeedbacks && selectedSegmentFeedbacks.length > 0 && (
-            <div className="space-y-6">
-              {/* Segment Info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-muted-foreground">Segment Name</p>
-                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.name || "-"}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-muted-foreground">Location</p>
-                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.location || "-"}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-muted-foreground">Age Range</p>
-                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.ageRange || "-"}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-base font-bold text-muted-foreground">Gender</p>
-                  <p className="text-lg font-bold">{selectedSegmentFeedbacks[0].segment?.gender || "-"}</p>
-                </div>
-              </div>
+          {selectedSegmentFeedbacks && selectedSegmentFeedbacks.length > 0 && (() => {
+            const sortedFeedbacks = [...selectedSegmentFeedbacks].sort((a, b) => {
+              const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+              const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+              return dateB - dateA
+            })
 
-              {/* All Feedbacks for this Segment */}
-              <div className="space-y-4">
-                <h4 className="font-bold text-xl">Feedback History</h4>
+            // Get the latest feedback for summary
+            const latestFeedback = sortedFeedbacks[0]
+            const latestScore = Number(latestFeedback.engagement) > 1 ? Number(latestFeedback.engagement) : Number(latestFeedback.engagement) * 10
 
-                {selectedSegmentFeedbacks.map((feedback, index) => {
-                  const score = feedback.engagement > 1 ? feedback.engagement : feedback.engagement * 10
+            // Group and deduplicate mechanism feedbacks by metricType
+            const groupedMechanismFeedbacks: Record<string, {
+              metricType: string
+              feedbacks: Array<{
+                id: string
+                awareness: string
+                motivation: string
+                capability: string
+                opportunity: string
+                createdAt: string
+              }>
+            }> = {}
 
-                  return (
-                    <div key={feedback.id} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h5 className="font-bold text-lg">
-                          Feedback #{selectedSegmentFeedbacks.length - index}
-                          {index === 0 && <Badge className="ml-2 font-bold" variant="default">Latest</Badge>}
-                        </h5>
-                        {feedback.created_at && (
-                          <span className="text-base font-semibold text-muted-foreground">
-                            {new Date(feedback.created_at).toLocaleString()}
+            // Collect all unique mechanism feedbacks across all feedbacks
+            sortedFeedbacks.forEach(feedback => {
+              if (feedback.mechanismFeedbacks && Array.isArray(feedback.mechanismFeedbacks)) {
+                feedback.mechanismFeedbacks.forEach((mf: any) => {
+                  const mechanismData = typeof mf === "string" ? JSON.parse(mf) : mf
+                  const metricType = mechanismData.metricType || "unknown"
+
+                  if (!groupedMechanismFeedbacks[metricType]) {
+                    groupedMechanismFeedbacks[metricType] = {
+                      metricType,
+                      feedbacks: []
+                    }
+                  }
+
+                  if (mechanismData.mechanismFeedbacks && Array.isArray(mechanismData.mechanismFeedbacks)) {
+                    mechanismData.mechanismFeedbacks.forEach((item: any) => {
+                      // Check for duplicates by ID
+                      const exists = groupedMechanismFeedbacks[metricType].feedbacks.some(
+                        existing => existing.id === item.id
+                      )
+                      if (!exists && item.id) {
+                        groupedMechanismFeedbacks[metricType].feedbacks.push({
+                          id: item.id,
+                          awareness: item.awareness || "",
+                          motivation: item.motivation || "",
+                          capability: item.capability || "",
+                          opportunity: item.opportunity || "",
+                          createdAt: item.createdAt || ""
+                        })
+                      }
+                    })
+                  }
+                })
+              }
+            })
+
+            // Sort each group's feedbacks by createdAt descending
+            Object.values(groupedMechanismFeedbacks).forEach(group => {
+              group.feedbacks.sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                return dateB - dateA
+              })
+            })
+
+            return (
+              <div className="space-y-6">
+                {/* Segment Info */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-muted-foreground">Segment Name</p>
+                    <p className="text-base font-bold">{selectedSegmentFeedbacks[0].segment?.name || "-"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-muted-foreground">Location</p>
+                    <p className="text-base font-bold">{selectedSegmentFeedbacks[0].segment?.location || "-"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-muted-foreground">Age</p>
+                    <p className="text-base font-bold">{extractAgeFromSegmentName(selectedSegmentFeedbacks[0].segment?.name || "")}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-muted-foreground">Gender</p>
+                    <p className="text-base font-bold">{selectedSegmentFeedbacks[0].segment?.gender || "-"}</p>
+                  </div>
+                </div>
+
+                {/* Section 1: General Feedback Summary (Latest) */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-lg border-b pb-2">General Feedback Summary (Latest)</h4>
+                  <div className="border rounded-lg p-4 bg-card space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default" className="font-bold">Latest Feedback</Badge>
+                        {latestFeedback.created_at && (
+                          <span className="text-sm font-semibold text-muted-foreground">
+                            {new Date(latestFeedback.created_at).toLocaleString()}
                           </span>
                         )}
                       </div>
+                      <div className="flex items-center gap-2">
+                        {getRecommendationStatus(latestScore).icon}
+                        <Badge variant={getRecommendationStatus(latestScore).variant} className="font-bold">
+                          {getRecommendationStatus(latestScore).text}
+                        </Badge>
+                      </div>
+                    </div>
 
-                      {/* Score Metrics */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Trait Checked</p>
-                          <Badge variant="outline" className="text-sm font-bold">{feedback.trait_checked}</Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Expected</p>
-                          <p className="text-base font-bold">{formatNumber(feedback.expected)}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Actual</p>
-                          <p className="text-base font-bold">{formatNumber(feedback.actual)}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Deviation</p>
-                          <p className={`text-base font-bold ${feedback.deviation > 0.2 ? "text-red-500" : "text-green-500"}`}>
-                            {formatNumber(feedback.deviation)}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Engagement</p>
-                          <p className="text-base font-bold" style={{ color: getScoreColor(score) }}>
-                            {formatNumber(score, 1)}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Match</p>
-                          <Badge variant={feedback.match ? "default" : "destructive"} className="text-sm font-bold">
-                            {feedback.match ? "Yes" : "No"}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Level</p>
-                          <Badge
-                            variant={
-                              feedback.level === "critical_mismatch"
-                                ? "destructive"
-                                : feedback.level === "excellent" || feedback.level === "good"
+                    {/* Score Metrics Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Trait</p>
+                        <Badge variant="outline" className="text-sm font-bold">{latestFeedback.trait_checked}</Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Expected</p>
+                        <p className="text-sm font-bold">{formatNumber(latestFeedback.expected)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Actual</p>
+                        <p className="text-sm font-bold">{formatNumber(latestFeedback.actual)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Deviation</p>
+                        <p className={`text-sm font-bold ${Number(latestFeedback.deviation) > 0.2 ? "text-red-500" : "text-green-500"}`}>
+                          {formatNumber(latestFeedback.deviation)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Engagement</p>
+                        <p className="text-sm font-bold" style={{ color: getScoreColor(latestScore) }}>
+                          {formatNumber(latestScore, 1)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Match</p>
+                        <Badge variant={latestFeedback.match ? "default" : "destructive"} className="text-sm font-bold">
+                          {latestFeedback.match ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Level</p>
+                        <Badge
+                          variant={
+                            latestFeedback.level === "critical_mismatch"
+                              ? "destructive"
+                              : latestFeedback.level === "excellent" || latestFeedback.level === "good"
                                 ? "default"
                                 : "secondary"
-                            }
-                            className="text-sm font-bold"
-                          >
-                            {feedback.level}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-muted-foreground">Recommendation</p>
-                          <div className="flex items-center gap-1">
-                            {getRecommendationStatus(score).icon}
-                            <span className="text-sm font-bold" style={{ color: getScoreColor(score) }}>
-                              {getRecommendationStatus(score).text}
-                            </span>
-                          </div>
-                        </div>
+                          }
+                          className="text-sm font-bold"
+                        >
+                          {latestFeedback.level}
+                        </Badge>
                       </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-muted-foreground">Total Feedbacks</p>
+                        <Badge variant="outline" className="text-sm font-bold">{sortedFeedbacks.length}</Badge>
+                      </div>
+                    </div>
 
-                      {/* Feedback Messages */}
-                      {feedback.feedback && feedback.feedback.length > 0 && (
-                        <div className="pt-3 border-t">
-                          <p className="text-sm font-bold text-muted-foreground mb-2">Suggestions:</p>
-                          <ul className="space-y-1">
-                            {feedback.feedback.map((item, idx) => (
-                              <li key={idx} className="flex items-start gap-2 text-base font-medium">
-                                <span className="text-muted-foreground">•</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                    {/* Suggestions */}
+                    {latestFeedback.feedback && latestFeedback.feedback.length > 0 && (
+                      <div className="pt-3 border-t">
+                        <p className="text-sm font-bold text-muted-foreground mb-2">AI Suggestions:</p>
+                        <ul className="space-y-1">
+                          {latestFeedback.feedback.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm font-medium">
+                              <span className="text-primary">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                      {/* Mechanism Feedbacks */}
-                      {feedback.mechanismFeedbacks && feedback.mechanismFeedbacks.length > 0 && (
-                        <div className="pt-3 border-t">
-                          <p className="text-sm font-bold text-muted-foreground mb-3">Mechanism Feedbacks:</p>
-                          <div className="space-y-3">
-                            {feedback.mechanismFeedbacks.map((mf: any, idx: number) => {
-                              // Parse the mechanism feedback if it's a string
-                              const mechanismData = typeof mf === "string" ? JSON.parse(mf) : mf
+                {/* Section 2: Mechanism Feedbacks Grouped by Type */}
+                {Object.keys(groupedMechanismFeedbacks).length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-bold text-lg border-b pb-2">Mechanism Feedbacks by Type</h4>
+                    <div className="space-y-4">
+                      {Object.entries(groupedMechanismFeedbacks).map(([metricType, group]) => (
+                        <div key={metricType} className="border rounded-lg overflow-hidden">
+                          {/* Metric Type Header */}
+                          <div className="bg-muted p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="font-mono text-sm font-bold">
+                                {metricType.replace(/_/g, ' ').toUpperCase()}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                ({group.feedbacks.length} unique entries)
+                              </span>
+                            </div>
+                          </div>
 
-                              return (
-                                <div key={idx} className="border rounded-lg p-3 bg-card space-y-3">
-                                  {/* Metric Type Header */}
-                                  {mechanismData.metricType && (
-                                    <div className="flex items-center gap-2 pb-2 border-b">
-                                      <Badge variant="outline" className="font-mono text-sm font-bold">
-                                        {mechanismData.metricType}
-                                      </Badge>
+                          {/* Feedbacks for this type - show all entries */}
+                          <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
+                            {group.feedbacks.map((item, itemIdx) => (
+                              <div key={item.id || itemIdx} className="p-3 rounded-lg bg-muted/30 space-y-2 border">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                  {item.awareness && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="font-bold text-muted-foreground min-w-[90px]">Awareness:</span>
+                                      <span className="font-medium">{item.awareness}</span>
                                     </div>
                                   )}
-
-                                  {/* Individual Mechanism Feedbacks */}
-                                  {mechanismData.mechanismFeedbacks && mechanismData.mechanismFeedbacks.length > 0 && (
-                                    <div className="space-y-2">
-                                      {mechanismData.mechanismFeedbacks.map((item: any, itemIdx: number) => (
-                                        <div key={item.id || itemIdx} className="p-2 rounded bg-muted/50 space-y-1.5">
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                            {item.awareness && (
-                                              <div className="flex items-start gap-2">
-                                                <span className="font-bold text-muted-foreground min-w-[80px]">Awareness:</span>
-                                                <span className="font-medium">{item.awareness}</span>
-                                              </div>
-                                            )}
-                                            {item.motivation && (
-                                              <div className="flex items-start gap-2">
-                                                <span className="font-bold text-muted-foreground min-w-[80px]">Motivation:</span>
-                                                <span className="font-medium">{item.motivation}</span>
-                                              </div>
-                                            )}
-                                            {item.capability && (
-                                              <div className="flex items-start gap-2">
-                                                <span className="font-bold text-muted-foreground min-w-[80px]">Capability:</span>
-                                                <span className="font-medium">{item.capability}</span>
-                                              </div>
-                                            )}
-                                            {item.opportunity && (
-                                              <div className="flex items-start gap-2">
-                                                <span className="font-bold text-muted-foreground min-w-[80px]">Opportunity:</span>
-                                                <span className="font-medium">{item.opportunity}</span>
-                                              </div>
-                                            )}
-                                          </div>
-                                          {item.createdAt && (
-                                            <div className="text-sm font-semibold text-muted-foreground pt-1 border-t">
-                                              {new Date(item.createdAt).toLocaleString()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ))}
+                                  {item.motivation && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="font-bold text-muted-foreground min-w-[90px]">Motivation:</span>
+                                      <span className="font-medium">{item.motivation}</span>
+                                    </div>
+                                  )}
+                                  {item.capability && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="font-bold text-muted-foreground min-w-[90px]">Capability:</span>
+                                      <span className="font-medium">{item.capability}</span>
+                                    </div>
+                                  )}
+                                  {item.opportunity && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="font-bold text-muted-foreground min-w-[90px]">Opportunity:</span>
+                                      <span className="font-medium">{item.opportunity}</span>
                                     </div>
                                   )}
                                 </div>
-                              )
-                            })}
+                                {item.createdAt && (
+                                  <div className="text-xs font-semibold text-muted-foreground pt-2 border-t flex items-center gap-1">
+                                    {new Date(item.createdAt).toLocaleString()}
+                                    {itemIdx === 0 && <Badge variant="default" className="ml-2 text-xs">Latest</Badge>}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+
                           </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  )
-                })}
+                  </div>
+                )}
+
+                {/* Section 3: Feedback History Timeline (Collapsed summary) */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-lg border-b pb-2">Feedback History ({sortedFeedbacks.length} entries)</h4>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {sortedFeedbacks.map((feedback, index) => {
+                      const score = Number(feedback.engagement) > 1 ? Number(feedback.engagement) : Number(feedback.engagement) * 10
+                      return (
+                        <div key={feedback.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-sm">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-muted-foreground">#{sortedFeedbacks.length - index}</span>
+                            {index === 0 && <Badge variant="default" className="text-xs">Latest</Badge>}
+                            <span className="font-medium" style={{ color: getScoreColor(score) }}>
+                              Score: {formatNumber(score, 1)}
+                            </span>
+                            <Badge variant={feedback.match ? "outline" : "destructive"} className="text-xs">
+                              {feedback.match ? "Match" : "Mismatch"}
+                            </Badge>
+                          </div>
+                          {feedback.created_at && (
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(feedback.created_at).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
         </DialogContent>
       </Dialog>
     </div>
