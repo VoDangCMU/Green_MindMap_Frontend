@@ -491,29 +491,29 @@ export default function ModelVerifyDetailPage() {
                   />
                   <Tooltip content={<CustomTooltip />} />
 
-                  {/* Red bar at position 10 (display 0) - Critical */}
+                  {/* Green bar at position 10 (display 0) - Best */}
                   <ReferenceLine
                     x={0}
-                    stroke="#ef4444"
+                    stroke="#22c55e"
                     strokeWidth={4}
                     label={{
                       value: "10",
                       position: "top",
-                      fill: "#ef4444",
+                      fill: "#22c55e",
                       fontSize: 14,
                       fontWeight: 700,
                     }}
                   />
 
-                  {/* Blue bar at position 0 (display 10) - Best */}
+                  {/* Red bar at position 0 (display 10) - Critical */}
                   <ReferenceLine
                     x={10}
-                    stroke="#3b82f6"
+                    stroke="#ef4444"
                     strokeWidth={4}
                     label={{
                       value: "0",
                       position: "top",
-                      fill: "#3b82f6",
+                      fill: "#ef4444",
                       fontSize: 14,
                       fontWeight: 700,
                     }}

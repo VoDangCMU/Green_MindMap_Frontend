@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, TreePine, FileText, Users, MessageSquare, LogOut, User, Brain, CheckCircle } from "lucide-react"
+import { LayoutDashboard, TreePine, FileText, Users, MessageSquare, LogOut, User, Brain, CheckCircle, Leaf } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import {
@@ -79,8 +79,8 @@ export function TopNavbar() {
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">G</span>
+            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center">
+              <Leaf className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">GreenMind</h1>
